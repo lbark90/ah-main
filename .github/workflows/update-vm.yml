@@ -1,0 +1,30 @@
+name: Update VM on Push
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+
+jobs:
+  update-vm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H 34.60.182.64 >> ~/.ssh/known_hosts
+
+    - name: Deploy to VM
+      run: |
+        ssh -i ~/.ssh/id_rsa larrybark>@34.60.182.64 << 'EOF'
+          cd /opt/ah-main
+          git pull origin main
+          npm install
+          pm2 restart all || npm run build && pm2 start npm --name "alive-here" -- start
+        EOF
