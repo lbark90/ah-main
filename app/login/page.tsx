@@ -11,14 +11,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetStatus, setResetStatus] = useState("");
   const router = useRouter();
   const { user, setUser, loginUser } = useUser();
 
   useEffect(() => {
-    // Redirect if already logged in
     if (user) {
       router.push("/dashboard");
     }
@@ -43,10 +39,6 @@ export default function Login() {
           firstName: credentials.firstName,
           lastName: credentials.lastName,
           email: credentials.email,
-          phone: "",
-          photoUrl: "",
-          photos: [],
-          password: password,
         };
         localStorage.setItem("aliveHereUser", JSON.stringify(user));
         setUser(user);
@@ -63,35 +55,8 @@ export default function Login() {
     }
   };
 
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetStatus("processing");
-
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resetEmail }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setResetStatus("success");
-        setResetEmail("");
-      } else {
-        setResetStatus("error");
-      }
-    } catch (error) {
-      setResetStatus("error");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
-
       <main className="container mx-auto px-4 py-12 flex-grow">
         <div className="max-w-md mx-auto bg-slate-800/50 p-8 rounded-lg border border-slate-700">
           <h1 className="text-3xl font-light mb-6 text-center">Welcome Back</h1>
@@ -188,81 +153,6 @@ export default function Login() {
               </button>
             </div>
           </form>
-
-          {isResetModalOpen && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-black p-8 rounded-lg max-w-md w-full border border-slate-700 shadow-xl">
-                <h2 className="text-2xl font-light mb-6">Reset Password</h2>
-
-                {resetStatus === "success" ? (
-                  <div>
-                    <p className="text-green-400 mb-4">
-                      Password reset email sent!
-                    </p>
-                    <p className="text-slate-300 mb-6">
-                      Please check your email for further instructions.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setIsResetModalOpen(false);
-                        setResetStatus("");
-                      }}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md"
-                    >
-                      Close
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={handlePasswordReset}>
-                    <div className="mb-4">
-                      <label
-                        htmlFor="resetEmail"
-                        className="block text-sm font-medium text-slate-300 mb-1"
-                      >
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        id="resetEmail"
-                        value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value)}
-                        style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-                        className="w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-slate-600"
-                        required
-                      />
-                    </div>
-
-                    {resetStatus === "error" && (
-                      <div className="bg-red-500/10 border border-red-500/50 rounded p-3 mb-4">
-                        <p className="text-red-400 text-sm">
-                          Failed to send reset email. Please try again.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex space-x-3">
-                      <button
-                        type="button"
-                        onClick={() => setIsResetModalOpen(false)}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-md"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={resetStatus === "processing"}
-                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md disabled:opacity-50"
-                      >
-                        {resetStatus === "processing"
-                          ? "Sending..."
-                          : "Send Reset Link"}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            </div>
-          )}
 
           <p className="text-center mt-6 text-slate-400">
             Don't have an account?{" "}
