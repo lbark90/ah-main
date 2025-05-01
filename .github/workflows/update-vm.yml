@@ -22,9 +22,9 @@ jobs:
 
     - name: Deploy to VM
       run: |
-        ssh -i ~/.ssh/id_rsa larrybark>@34.60.182.64 << 'EOF'
+        ssh -i ~/.ssh/id_rsa larrybark@34.60.182.64 << 'EOF'
           cd /opt/ah-main
           git pull origin main
           npm install
           pm2 restart all || npm run build && pm2 start npm --name "alive-here" -- start
-        EOF
+        EOF 
