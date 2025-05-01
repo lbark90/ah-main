@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "../../lib/context/UserContext";
@@ -15,7 +15,14 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetStatus, setResetStatus] = useState("");
   const router = useRouter();
-  const { loginUser } = useUser();
+  const { user, setUser, loginUser } = useUser();
+
+  useEffect(() => {
+    // Redirect if already logged in
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,21 +30,12 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // Fetch credentials from GCP bucket using username path
-      console.log('Attempting login with username:', email); // email variable contains username
       const response = await fetch(`/api/storage/fetch?path=${email}/credentials/login_credentials.json`);
-      console.log('Fetch response:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
-        console.error('Fetch error:', await response.text());
-        throw new Error('Failed to fetch credentials');
+        throw new Error("Invalid email or password");
       }
 
       const credentials = await response.json();
-      console.log('Full credentials response:', credentials);
-      console.log('Credentials check:', { email, storedUsername: credentials.username });
-
       if (credentials.userId === email && credentials.password === password) {
         const user = {
           id: credentials.userId,
@@ -45,20 +43,20 @@ export default function Login() {
           firstName: credentials.firstName,
           lastName: credentials.lastName,
           email: credentials.email,
-          phone: '',
-          photoUrl: '',
+          phone: "",
+          photoUrl: "",
           photos: [],
-          password: password
+          password: password,
         };
-        localStorage.setItem('aliveHereUser', JSON.stringify(user));
+        localStorage.setItem("aliveHereUser", JSON.stringify(user));
+        setUser(user);
         await loginUser(email, password);
         router.push("/conversation");
-      } else if (credentials.username === email && credentials.password === password) {
       } else {
-        throw new Error('Invalid credentials');
+        throw new Error("Invalid credentials");
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error("Login error:", err);
       setError("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
@@ -89,6 +87,8 @@ export default function Login() {
     }
   };
 
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
 
