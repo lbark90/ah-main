@@ -44,7 +44,7 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           console.log("User name:", userName);
           console.log("Question index:", questionIndex + 1);
           console.log("Attempting to load audio from:", audioUrl);
-          if (container && isMounted) {
+          if (container) {
             const audioElement = document.createElement("audio");
             audioElement.src = audioUrl;
             audioElement.controls = true;
@@ -119,6 +119,9 @@ export default function InterviewRecorder({ questionIndex }: Props) {
 
   const stopRecording = async () => {
     if (!mediaRecorderRef.current || !user) return;
+    
+    // Create a local isMounted flag
+    let isMounted = true;
 
     const loadQuestionAudio = async () => {
       try {

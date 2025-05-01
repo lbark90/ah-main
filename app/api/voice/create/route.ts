@@ -33,10 +33,11 @@ export async function POST(req: Request) {
       });
 
       pythonProcess.on('close', (code) => {
+        const finalCode = code !== null ? code : undefined;
         if (code === 0 && output.trim()) {
           resolve({ success: true, voiceId: output.trim() });
         } else {
-          resolve({ success: false, error: errorOutput || 'Failed to create voice', code });
+          resolve({ success: false, error: errorOutput || 'Failed to create voice', code: finalCode });
         }
       });
 

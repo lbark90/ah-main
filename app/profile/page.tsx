@@ -19,10 +19,10 @@ export default function Profile() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeSection, setActiveSection] = useState("name");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [uploadedPhotos, setUploadedPhotos] = useState([]);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploadStatus, setUploadStatus] = useState({
     loading: false,
-    error: null,
+    error: null as string | null,
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -33,17 +33,26 @@ export default function Profile() {
 
   const [successType, setSuccessType] = useState(""); // "username", "password", or "profile"
 
-  // Create edited user state
-  const [editedUser, setEditedUser] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    email: "",
-    photoUrl: "",
-    username: "",
-    photos: [],
-    dob: "",
-  });
+  // Create edited user state with proper typing
+    const [editedUser, setEditedUser] = useState<{
+      firstName: string;
+      middleName: string;
+      lastName: string;
+      email: string;
+      photoUrl: string;
+      username: string;
+      photos: string[];
+      dob: string;
+    }>({
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      email: "",
+      photoUrl: "",
+      username: "",
+      photos: [],
+      dob: "",
+    });
 
   useEffect(() => {
     if (!user) {
@@ -86,13 +95,13 @@ export default function Profile() {
 
     const fetchPhotos = async () => {
       try {
-        if (!user?.username) {
-          console.warn("No username available");
+        if (!user?.id) {
+          console.warn("No user ID available");
           return;
         }
-        console.log("Fetching photos for user:", user.username);
+        console.log("Fetching photos for user:", user.id);
         const response = await fetch(
-          `/api/photos/${encodeURIComponent(user.username)}`,
+          `/api/photos/${encodeURIComponent(user.id)}`,
           {
             method: "GET",
             headers: {
@@ -123,13 +132,13 @@ export default function Profile() {
   }, [user]);
 
   // Simple helper to get user folder name
-  const getUserFolderName = () => {
-    if (!user) return "anonymous";
-    return user.username;
+  const getUserFolderName = (): string => {
+    if (!user || !user.id) return "anonymous";
+    return user.id;
   };
 
   // Handle profile photo upload with basic form data
-  const handleProfilePhotoUpload = async (e) => {
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -190,7 +199,13 @@ export default function Profile() {
           photoUrl: photoUrl,
         };
         setEditedUser(updatedUser);
-        await setUser(updatedUser);
+        
+        // Include phone field when updating user context
+        await setUser({
+          ...updatedUser,
+          phone: user?.phone || "", // Add the required phone field
+          id: user?.id // Preserve the id
+        });
         setUploadStatus({ loading: false, error: null });
       } else {
         console.error("No file path or URL in response:", data);
@@ -208,8 +223,8 @@ export default function Profile() {
   };
 
   // Handle gallery photo upload with basic form data
-  const handlePhotoUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as File[];
     if (files.length === 0) return;
 
     setUploadStatus({ loading: true, error: null });
@@ -279,6 +294,8 @@ export default function Profile() {
         if (setUser) {
           await setUser({
             ...editedUser,
+            phone: user?.phone || "", // Add the required phone field
+            id: user?.id, // Preserve the id
             photos: [...(editedUser.photos || []), photoUrl],
           });
         }
@@ -318,7 +335,7 @@ export default function Profile() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: user?.username,
+          username: user?.id, // Using id instead of username as it appears to be the equivalent in UserData type
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
@@ -348,7 +365,11 @@ export default function Profile() {
   // Handle saving profile changes
   const handleSave = async () => {
     try {
-      await setUser(editedUser);
+      await setUser({
+        ...editedUser,
+        phone: user?.phone || "", // Add the required phone field
+        id: user?.id // Preserve the id
+      });
       setSaveSuccess(true);
       setSuccessType("profile");
       setEditMode(false);
@@ -774,7 +795,7 @@ export default function Profile() {
                                     alert("Please enter a username");
                                     return;
                                   }
-                                  if (editedUser.username === user?.username) {
+                                  if (editedUser.username === user?.id) {
                                     alert("Please enter a different username");
                                     return;
                                   }
@@ -787,7 +808,7 @@ export default function Profile() {
                                         "Content-Type": "application/json",
                                       },
                                       body: JSON.stringify({
-                                        oldUsername: user?.username,
+                                        oldUsername: user?.id,
                                         newUsername: editedUser.username,
                                       }),
                                     },
@@ -802,6 +823,7 @@ export default function Profile() {
                                     // Update user context with new username
                                     await setUser({
                                       ...editedUser,
+                                      phone: user?.phone || "", // Add the required phone field
                                       id: editedUser.username,
                                     });
                                     setEditMode(false);

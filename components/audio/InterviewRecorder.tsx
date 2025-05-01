@@ -100,7 +100,7 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           !audioBlob &&
           !hasExistingRecording
         ) {
-          const userId = user.id || user.username || user.email?.split('@')[0];
+          const userId = user.id || user.email?.split('@')[0];
           const audioUrl = `/api/audio/${userId}/${questionIndex + 1}`;
 
           // Show loading state
@@ -296,9 +296,10 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           // Log all fields in the FormData for debugging
           console.log("FormData fields:");
           for (const pair of formData.entries()) {
-            if (pair[1] instanceof Blob || pair[1] instanceof File) {
+            const value = pair[1] as unknown;
+            if (value instanceof Blob || value instanceof File) {
               console.log(
-                `${pair[0]}: [Blob/File] size=${pair[1].size} type=${pair[1].type}`,
+                `${pair[0]}: [Blob/File] size=${value.size} type=${value.type}`,
               );
             } else {
               console.log(`${pair[0]}: ${pair[1]}`);
@@ -360,9 +361,11 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           if (data.success) {
             // Create recording object that matches the expected format in InterviewContext
             const recordingData = {
+              id: `recording_${questionIndex}_${Date.now()}`, // Generate a unique ID
               questionIndex,
               audioUrl: url, // Use local blob URL for immediate playback
               transcript: transcript || "", // Use transcript if available
+              timestamp: new Date().toISOString(), // Add current timestamp
             };
 
             console.log("Saving recording to context:", recordingData);

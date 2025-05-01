@@ -67,13 +67,13 @@ export class UserStorage {
     }
   }
 
-  static saveRecording(userId: string, index: number, audioBlob: Blob, transcript: string): void {
+  static saveRecording(userId: string, index: number, audioBuffer: ArrayBuffer, transcript: string): void {
     const recordingsDir = path.join(this.BASE_DIR, userId, 'recordings');
     
     // Save audio file
     fs.writeFileSync(
       path.join(recordingsDir, `${userId}_question${index + 1}_${new Date().toISOString().replace(/[:.]/g, '-')}.wav`),
-      Buffer.from(audioBlob)
+      Buffer.from(audioBuffer)
     );
     
     // Save transcript

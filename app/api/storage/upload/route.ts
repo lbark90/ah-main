@@ -15,13 +15,13 @@ export async function POST(request: Request) {
 
     const audio = formData.get('audio') as Blob;
     const questionIndex = formData.get('questionIndex') as string;
-    const userName = formData.get('userName') as string;
+    const userId = formData.get('userId') as string;
     const type = formData.get('type') as string;
 
-    if (!audio || !userName || !type) {
+    if (!audio || !userId || !type) {
       console.error('Missing required fields:', {
         hasAudio: !!audio,
-        hasUserName: !!userName,
+        hasUserId: !!userId,
         hasType: !!type,
         questionIndex: questionIndex || 'N/A'
       });
@@ -49,23 +49,23 @@ export async function POST(request: Request) {
     const fileExtension = (audio.type.startsWith('image/')) ? 
       (audio.type === 'image/jpeg' ? 'jpg' : audio.type.split('/')[1]) : 'mp3';
 
-    const fileName = `${userName}_${type}_${timestamp}.${fileExtension}`;
+    const fileName = `${userId}_${type}_${timestamp}.${fileExtension}`;
 
-    // Use encoded email for folder path
-    const encodedEmail = encodeURIComponent(email);
+    // Use encoded userId for folder path
+    const encodedUserId = encodeURIComponent(userId);
     
     // Determine the folder path based on the type
     let folderPath;
     if (type === 'profile-photo') {
-      folderPath = `${encodedEmail}/profile`;
+      folderPath = `${encodedUserId}/profile`;
     } else if (type === 'gallery') {
-      folderPath = `${encodedEmail}/gallery`;
+      folderPath = `${encodedUserId}/gallery`;
     } else if (type === 'recording') {
       // For recordings, use the question index to create a folder structure
-      folderPath = `${encodedEmail}/recordings/${questionIndex}`;
+      folderPath = `${encodedUserId}/recordings/${questionIndex}`;
     } else {
       // Default case, use a generic path
-      folderPath = `${encodedEmail}/${type}`;
+      folderPath = `${encodedUserId}/${type}`;
     }
 
     const filePath = `${folderPath}/${fileName}`;

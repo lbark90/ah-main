@@ -36,6 +36,7 @@ export async function POST(request: Request) {
       transcript,
       timestamp: new Date().toISOString(),
       audioData: audioBuffer,
+      questionIndex: 0, // Add the missing property, set appropriate value based on your logic
     };
     
     await localStorageService.saveRecording(recording);

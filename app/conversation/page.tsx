@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "../../lib/context/UserContext";
+import { useUser } from "../../lib/context/UserContext"; // Use useUser hook
 import { useVoice } from "../../lib/context/VoiceContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ConversationUI from "../../components/audio/ConversationUI";
 
 export default function Conversation() {
-  const { user } = useUser();
-  const { voice, textToSpeech } = useVoice();
+  const { user } = useUser(); // Access user context via useUser
+  const { voice } = useVoice(); // Access voice context
   const router = useRouter();
 
   const [userName, setUserName] = useState("");
@@ -20,61 +20,56 @@ export default function Conversation() {
   const [userDob, setUserDob] = useState(""); // Add state for date of birth
   const [hasVoiceId, setHasVoiceId] = useState(true); // New state for voice ID check
 
-  // Connection status for WebSocket
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
-
   // Load user data and interview session on component mount
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && user) {
-        // Set the user name (for display in UI)
-        setUserName(`${user.firstName || ''} ${user.lastName || ''}`);
-        
-        // For memorial name, we should use the actual user's name
-        // This is who the conversation will be with
-        setMemorializedName(`${user.firstName || ''} ${user.lastName || ''}`);
-        
-        // Set user's date of birth - only use what comes from the user object
-        // @ts-ignore - Using any available DOB property without defaults
-        const userDateOfBirth = user.dob || user.dateOfBirth || '';
-        setUserDob(userDateOfBirth);
-        
-        console.log("User profile loaded:", {
-          userId: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          // @ts-ignore - Only log the actual DOB without defaults
-          dob: user.dob || user.dateOfBirth || ''
-        });
+    const loadUserData = async () => {
+      try {
+        if (typeof window !== "undefined" && user) {
+          // Set the user name (for display in UI)
+          setUserName(`${user.firstName || ""} ${user.lastName || ""}`);
 
-        // Check if the user has a voice ID
-        checkVoiceId(user.id);
+          // For memorial name, we should use the actual user's name
+          setMemorializedName(`${user.firstName || ""} ${user.lastName || ""}`);
+
+          // Safely access user's date of birth
+          const userDateOfBirth = user.dateOfBirth || "Unknown";
+          setUserDob(userDateOfBirth);
+
+          console.log("User profile loaded:", {
+            userId: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            dateOfBirth: userDateOfBirth,
+          });
+
+          // Check if the user has a voice ID
+          await checkVoiceId(user.id || "");
+        }
+
+        // Set creation date
+        setCreationDate(
+          new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        );
+
+        // Generate welcome message audio
+        await generateWelcomeAudio();
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error in useEffect:", error);
+        setIsLoading(false);
       }
+    };
 
-      // Check if interview is completed
-      const storedSession = localStorage.getItem("aliveHereInterviewSession");
-      
-      // Set creation date
-      setCreationDate(
-        new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-      );
-
-      // Generate welcome message audio
-      generateWelcomeAudio();
-
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error in useEffect:', error);
-      setIsLoading(false);
-    }
+    loadUserData();
   }, [user, voice, router]);
 
   // Check if the user has a voice ID
-  const checkVoiceId = async (userId) => {
+  const checkVoiceId = async (userId: string) => {
     try {
       const response = await fetch(`/api/voice/id?userId=${userId}`);
       if (response.status === 404) {
@@ -94,7 +89,6 @@ export default function Conversation() {
       const welcomeText =
         "Hello, it's wonderful to connect with you. I'm here to share memories and wisdom. What would you like to talk about today?";
 
-      // Skip welcome audio for now since textToSpeech is not ready
       console.log("Welcome message:", welcomeText);
     } catch (error) {
       console.error("Error generating welcome audio:", error);

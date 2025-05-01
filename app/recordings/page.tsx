@@ -154,7 +154,7 @@ export default function RecordingsPage() {
       return;
     }
 
-    const userName = user.userId || user.id || (user.email ? user.email.split('@')[0] : null);
+    const userName = user.id || (user.email ? user.email.split('@')[0] : null);
 
     if (!userName) {
       console.error("Could not determine user identifier");
@@ -229,7 +229,7 @@ export default function RecordingsPage() {
                 <div className="mt-4 space-y-3">
                   {questions
                     .filter(q => q.section === section)
-                    .map((question, idx) => {f
+                    .map((question, idx) => {
                       const questionIndex = questions.findIndex(q => q.text === question.text);
                       return (
                         <div key={idx} className="bg-slate-700/30 p-4 rounded-md">

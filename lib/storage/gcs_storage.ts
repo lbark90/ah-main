@@ -8,7 +8,7 @@ export async function uploadRecording(file: File, fileName: string): Promise<str
   const bucket = storage.bucket(bucketName);
   const blob = bucket.file(fileName);
   
-  await blob.save(await file.arrayBuffer());
+  await blob.save(Buffer.from(await file.arrayBuffer()));
   
   // Generate signed URL for temporary access
   const [url] = await blob.getSignedUrl({

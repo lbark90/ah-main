@@ -19,3 +19,7 @@ export async function loginUser(username: string, password: string) {
     throw error;
   }
 }
+function setUser(user: any) {
+  throw new Error("Function not implemented.");
+}
+

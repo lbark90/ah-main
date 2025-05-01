@@ -39,6 +39,7 @@ export default function Login() {
           firstName: credentials.firstName,
           lastName: credentials.lastName,
           email: credentials.email,
+          phone: credentials.phone || "", // Add the required phone property
         };
         localStorage.setItem("aliveHereUser", JSON.stringify(user));
         setUser(user);
@@ -54,6 +55,10 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  function setIsResetModalOpen(arg0: boolean): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">

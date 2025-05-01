@@ -444,7 +444,6 @@ export default function Interview() {
     getCurrentQuestionRecording,
     goToNextQuestion,
     goToPreviousQuestion,
-    recordings,
     completeSession,
   } = useInterview();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -455,7 +454,7 @@ export default function Interview() {
       const fetchRecordings = async () => {
         try {
           const response = await fetch(
-            `/api/storage/list?user=${encodeURIComponent(user?.email)}`,
+            `/api/storage/list?user=${encodeURIComponent(user?.email || '')}`,
           );
 
           if (!response.ok) {
@@ -463,10 +462,10 @@ export default function Interview() {
           }
 
           const files = await response.json();
-          startNewSession(files);
+          startNewSession();
         } catch (error) {
           console.error("Error:", error);
-          startNewSession([]);
+          startNewSession();
         }
       };
 
@@ -582,7 +581,7 @@ export default function Interview() {
                 <button
                   onClick={() =>
                     router.push(
-                      `/api/audio/${user?.id || user?.username || user?.email}/${currentSession.questionIndex + 1}`,
+                      `/api/audio/${user?.id || user?.email}/${currentSession.questionIndex + 1}`,
                     )
                   }
                   className="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-md transition-colors"

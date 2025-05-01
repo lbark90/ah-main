@@ -21,11 +21,14 @@ export interface UserData {
   createdAt?: string;
   photoUrl?: string;
   photos?: string[];
+  dateOfBirth?: string; // Added dateOfBirth property
 }
 
 interface UserContextType {
   user: UserData | null;
-  setUser: Dispatch<SetStateAction<UserData | null>>;
+  setUser: React.Dispatch<React.SetStateAction<UserData | null>>;
+  isLoading: boolean;
+  registerUser: (userData: UserData) => Promise<void>;
   loginUser: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -34,6 +37,7 @@ const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Load user from local storage on initial load
   useEffect(() => {
@@ -74,14 +78,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
-
   const logout = () => {
     setUser(null);
     localStorage.removeItem("aliveHereUser");
   };
 
+  const registerUser = async (userData: UserData): Promise<void> => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Registration failed");
+      }
+
+      const data = await response.json();
+      setUser(data);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, setUser, loginUser, logout }}>
+    <UserContext.Provider value={{ user, setUser, isLoading, loginUser, logout, registerUser }}>
       {children}
     </UserContext.Provider>
   );

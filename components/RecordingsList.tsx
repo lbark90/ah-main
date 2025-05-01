@@ -77,10 +77,6 @@ function AudioPlayer({ src, questionIndex }: { src: string; questionIndex: numbe
 }
 
 
-import { useState, useEffect } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
-import { useUser } from "../lib/context/UserContext";
-
 interface Recording {
   section: string;
   text: string;

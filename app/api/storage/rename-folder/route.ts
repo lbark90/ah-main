@@ -96,7 +96,9 @@ export async function POST(request: Request) {
 
         // Copy file to new location with metadata
         const [metadata] = await file.getMetadata();
-        await file.copy(newFile, { metadata });
+        await file.copy(newFile, { 
+          metadata: metadata.metadata || {} // Use the custom metadata subfield directly
+        });
         successful.copies++;
 
         console.log(`Copied ${file.name} to ${newPath}`);
@@ -146,7 +148,7 @@ export async function POST(request: Request) {
           // Force delete with generation match = 0 (deletes any generation)
           await file.delete({
             ignoreNotFound: true,
-            generationMatchPrecondition: 0,
+            ifGenerationMatch: 0,
           });
           console.log(`Force deleted ${file.name}`);
         } catch (error) {

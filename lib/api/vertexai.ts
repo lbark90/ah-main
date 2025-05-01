@@ -9,7 +9,7 @@ const getVertexAI = () => {
   return new VertexAI({
     project: projectId,
     location: location,
-    credentials: credentials
+    googleAuthOptions: { credentials }
   });
 };
 

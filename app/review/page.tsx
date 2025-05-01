@@ -15,6 +15,7 @@ const questions = [
 
 export default function Review() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [userId, setUserId] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -39,9 +40,8 @@ export default function Review() {
             {recordings.map((recording, index) => (
               <div key={recording.id} className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
                 <h3 className="text-xl mb-2">Question {recording.questionIndex + 1}</h3>
-                <p className="text-slate-300 mb-4">{questions[recording.questionIndex]}</p>
                 <audio 
-                  src={`/api/audio/${user?.id?.toLowerCase()}/${recording.questionIndex + 1}`}
+                  src={`/api/audio/${userId?.toLowerCase()}/${recording.questionIndex + 1}`}
                   controls 
                   className="w-full mb-4" 
                   onPlay={() => console.log('Playing audio:', recording.id)}

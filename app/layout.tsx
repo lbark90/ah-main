@@ -15,7 +15,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          {/* @ts-expect-error Async Server Component */}
           <Header />
           {children}
         </Providers>
