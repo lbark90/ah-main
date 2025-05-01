@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 
@@ -8,15 +7,14 @@ export async function GET(request: Request, { params }: { params: { question: st
         const userName = searchParams.get('user') || '';
         const questionNum = params.question;
 
-        const pythonProcess = spawn('python3', [
-            'lib/audio/audio_retriever.py',
-            userName,
-            questionNum
-        ]);
-
-        return new Promise((resolve) => {
+        const audioBuffer = await new Promise<Buffer>((resolve, reject) => {
             const chunks: Buffer[] = [];
-            
+            const pythonProcess = spawn('python3', [
+                'lib/audio/audio_retriever.py',
+                userName,
+                questionNum
+            ]);
+
             pythonProcess.stdout.on('data', (data) => {
                 chunks.push(Buffer.from(data));
             });
@@ -27,17 +25,22 @@ export async function GET(request: Request, { params }: { params: { question: st
 
             pythonProcess.on('close', (code) => {
                 if (code === 0 && chunks.length > 0) {
-                    const audioBuffer = Buffer.concat(chunks);
-                    resolve(new NextResponse(audioBuffer, {
-                        headers: {
-                            'Content-Type': 'audio/mpeg',
-                            'Content-Length': audioBuffer.length.toString()
-                        }
-                    }));
+                    resolve(Buffer.concat(chunks));
                 } else {
-                    resolve(NextResponse.json({ error: 'Audio file not found' }, { status: 404 }));
+                    reject(new Error('Audio file not found'));
                 }
             });
+
+            pythonProcess.on('error', (err) => {
+                reject(err);
+            });
+        });
+
+        return new NextResponse(audioBuffer, {
+            headers: {
+                'Content-Type': 'audio/mpeg',
+                'Content-Length': audioBuffer.length.toString()
+            }
         });
     } catch (error) {
         console.error('Error fetching audio:', error);
