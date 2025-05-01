@@ -16,7 +16,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      router.push("/dashboard");
+      router.push("/conversation");
     }
   }, [user, router]);
 
