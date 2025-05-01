@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { transcribeAudio } from '../../../lib/audio/transcribe';
 import path from 'path';
 //fs is no longer needed because we assume recordings are already available.
 //import fs from 'fs/promises';
