@@ -3,11 +3,16 @@ import path from 'path';
 //fs is no longer needed because we assume recordings are already available.
 //import fs from 'fs/promises';
 
+type TranscriptItem = {
+  questionIndex: any; // replace 'any' with a stricter type if known
+  transcript: any;    // replace 'any' with a stricter type if known
+};
+
 export async function POST(request: Request) {
   try {
     const { recordings, userId, voiceId } = await request.json();
 
-    const transcripts = [];
+    const transcripts: TranscriptItem[] = [];
 
     const { spawn } = require('child_process');
     
