@@ -749,7 +749,7 @@ export default function ConversationUI({
       }
 
       // Use the fixed WebSocket endpoint for localhost
-      const socketUrl = "ws://0.0.0.0:8080";
+      const socketUrl = "ws://34.60.182.64:8080";
       console.log(`Attempting socket connection to: ${socketUrl} (using fixed localhost endpoint)`);
 
       const newSocket = new WebSocket(socketUrl);
