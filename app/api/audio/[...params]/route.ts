@@ -2,11 +2,7 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import fs from 'fs';
 
-const credentials = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'google_credentials.json'), 'utf8'));
-const storage = new Storage({
-  credentials,
-  projectId: credentials.project_id
-});
+const storage = new Storage();  // Use default credentials
 const bucketName = process.env.GCP_BUCKET_NAME || 'memorial-voices';
 import { NextRequest } from "next/server";
 

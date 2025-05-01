@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -10,8 +9,8 @@ def debug_voice_files(user_id):
         print(f"Debugging voice files for user: {user_id}")
         
         # Initialize Google Cloud Storage client
-        storage_client = storage.Client.from_service_account_json('google_credentials.json')
-        bucket = storage.Bucket(storage_client, 'memorial-voices')
+        storage_client = storage.Client()  # Use default credentials
+        bucket = storage_client.bucket('memorial-voices')
         
         # Check for voice ID file (main location)
         voice_id_path = f"{user_id}/voice_id/voice_id.json"

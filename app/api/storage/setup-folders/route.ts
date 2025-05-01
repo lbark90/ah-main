@@ -1,11 +1,7 @@
-
 import { Storage } from '@google-cloud/storage';
 import { NextResponse } from 'next/server';
 
-const storage = new Storage({
-  keyFilename: './credentials/gcp-credentials.json'
-});
-
+const storage = new Storage();  // Use default credentials
 const BUCKET_NAME = process.env.GCP_BUCKET_NAME || 'your-bucket-name';
 
 export async function POST(request: Request) {

@@ -1,4 +1,3 @@
-
 from google.cloud import storage
 import os
 
@@ -8,8 +7,8 @@ def upload_file_to_gcp(file_path: str, user_id: str, file_type: str):
     file_type should be either 'recordings' or 'photos'
     """
     try:
-        # Initialize storage client with credentials
-        storage_client = storage.Client.from_service_account_json('credentials/gcp-credentials.json')
+        # Initialize storage client with default credentials
+        storage_client = storage.Client()
         
         # Get bucket reference without fetching its metadata
         bucket_name = 'memorial-voices'

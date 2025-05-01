@@ -52,11 +52,8 @@ class VoiceCreator:
 
     def create_voice(self, user_id, name):
         try:
-            if not os.path.exists('google_credentials.json'):
-                with open('google_credentials.json', 'w') as f:
-                    json.dump(json.loads(os.environ['GOOGLE_APPLICATION_CREDENTIALS']), f)
-
-            storage_client = storage.Client.from_service_account_json('google_credentials.json')
+            # Initialize Google Cloud Storage client with default credentials
+            storage_client = storage.Client()
             bucket = storage_client.bucket('memorial-voices')
             
             # Check if voice already exists

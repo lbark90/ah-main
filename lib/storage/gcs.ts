@@ -1,48 +1,9 @@
-
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import fs from 'fs';
 
-// Initialize storage with better error handling
-let storage;
-try {
-  const credPath = path.join(process.cwd(), 'google_credentials.json');
-  console.log(`Looking for Google credentials at: ${credPath}`);
-  
-  if (fs.existsSync(credPath)) {
-    console.log('Google credentials file found');
-    storage = new Storage({
-      keyFilename: credPath
-    });
-  } else {
-    console.error('Google credentials file not found!');
-    // Try using environment variables
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-      console.log('Using GOOGLE_APPLICATION_CREDENTIALS environment variable');
-      storage = new Storage();
-    } else if (process.env.GOOGLE_CREDENTIALS) {
-      console.log('Creating credentials from GOOGLE_CREDENTIALS environment variable');
-      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-      storage = new Storage({ credentials });
-    } else {
-      console.error('No Google credentials found in environment either!');
-      storage = new Storage(); // This will likely fail, but we'll handle the error later
-    }
-  }
-} catch (error) {
-  console.error('Error initializing Google Cloud Storage:', error);
-  // Create a minimal storage object that will report errors properly
-  storage = {
-    bucket: (name) => ({
-      file: (path) => ({
-        exists: async () => [false],
-        download: async () => { throw new Error('Storage not properly initialized'); },
-        save: async () => { throw new Error('Storage not properly initialized'); }
-      }),
-      upload: async () => { throw new Error('Storage not properly initialized'); }
-    })
-  };
-}
+// Initialize storage with default credentials from the GCP VM
+const storage = new Storage();
 
 const bucketName = process.env.GCP_BUCKET_NAME || 'memorial-voices';
 console.log(`Using GCS bucket: ${bucketName}`);

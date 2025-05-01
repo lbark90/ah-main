@@ -1,4 +1,3 @@
-
 import os
 import sys
 import json
@@ -13,11 +12,7 @@ class ConversationHandler:
     def __init__(self):
         # Initialize Google Cloud Storage client
         try:
-            if os.path.exists('google_credentials.json'):
-                self.storage_client = storage.Client.from_service_account_json('google_credentials.json')
-            else:
-                self.storage_client = storage.Client()
-            
+            self.storage_client = storage.Client()  # Use default credentials
             self.bucket_name = os.getenv('GCP_BUCKET_NAME', 'memorial-voices')
             self.bucket = self.storage_client.bucket(self.bucket_name)
             
