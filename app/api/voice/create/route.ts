@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -14,18 +13,18 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const pythonProcess = spawn('python3', [
-      path.join(process.cwd(), 'lib/audio/create_voice.py'),
-      userId,
-      `${firstName} ${lastName}`
-    ]);
-
-    return new Promise((resolve) => {
-      let result = '';
+    const result = await new Promise<{ success: boolean; voiceId?: string; error?: string; code?: number }>((resolve, reject) => {
+      let output = '';
       let errorOutput = '';
-      
+
+      const pythonProcess = spawn('python3', [
+        path.join(process.cwd(), 'lib/audio/create_voice.py'),
+        userId,
+        `${firstName} ${lastName}`
+      ]);
+
       pythonProcess.stdout.on('data', (data) => {
-        result += data.toString();
+        output += data.toString();
       });
 
       pythonProcess.stderr.on('data', (data) => {
@@ -34,20 +33,26 @@ export async function POST(req: Request) {
       });
 
       pythonProcess.on('close', (code) => {
-        if (code === 0 && result.trim()) {
-          resolve(NextResponse.json({ 
-            success: true, 
-            voiceId: result.trim() 
-          }));
+        if (code === 0 && output.trim()) {
+          resolve({ success: true, voiceId: output.trim() });
         } else {
-          resolve(NextResponse.json({ 
-            success: false, 
-            error: errorOutput || 'Failed to create voice',
-            code 
-          }, { status: 500 }));
+          resolve({ success: false, error: errorOutput || 'Failed to create voice', code });
         }
       });
+
+      pythonProcess.on('error', (err) => {
+        reject(err);
+      });
     });
+
+    if (result.success) {
+      return NextResponse.json({ success: true, voiceId: result.voiceId });
+    } else {
+      return NextResponse.json(
+        { success: false, error: result.error, code: result.code },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error in voice creation:', error);
     return NextResponse.json({ 
