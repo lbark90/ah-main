@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { writeFile } from 'fs/promises';
-import { transcribeAudio } from '@/lib/audio/transcribe';
 
 export async function POST(request: Request) {
   try {
