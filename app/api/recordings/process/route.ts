@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 
@@ -14,35 +13,41 @@ export async function POST(request: Request) {
       );
     }
 
-    // Run the Python script
-    const pythonProcess = spawn('python3', [
-      'lib/audio/process_recordings.py',
-      userId,
-      elevenlabsKey
-    ]);
+    // Await the Python script result
+    const result = await new Promise((resolve, reject) => {
+      let output = '';
+      const pythonProcess = spawn('python3', [
+        'lib/audio/process_recordings.py',
+        userId,
+        elevenlabsKey
+      ]);
 
-    return new Promise((resolve) => {
-      let result = '';
-      
       pythonProcess.stdout.on('data', (data) => {
-        result += data.toString();
+        output += data.toString();
       });
 
       pythonProcess.on('close', (code) => {
         if (code === 0) {
-          resolve(NextResponse.json({ success: true, result: JSON.parse(result) }));
+          try {
+            resolve(JSON.parse(output));
+          } catch (err) {
+            reject(new Error('Failed to parse Python script output'));
+          }
         } else {
-          resolve(NextResponse.json(
-            { error: 'Failed to process recordings' },
-            { status: 500 }
-          ));
+          reject(new Error('Python script failed with non-zero exit code'));
         }
       });
+
+      pythonProcess.on('error', (err) => {
+        reject(err);
+      });
     });
+
+    return NextResponse.json({ success: true, result });
   } catch (error) {
     console.error('Error processing recordings:', error);
     return NextResponse.json(
-      { error: 'Failed to process recordings' },
+      { error: 'Failed to process recordings', details: error.message },
       { status: 500 }
     );
   }
