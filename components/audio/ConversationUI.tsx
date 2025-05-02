@@ -111,7 +111,7 @@ export default function ConversationUI({
   const lastTextChunkRef = useRef<string>("");
   // Flag to track if any real audio chunks were received
   const hasAudioRef = useRef<boolean>(false);
-  
+
   // Speech recognition states from debug client
   const [transcript, setTranscript] = useState("");
   const [interimResult, setInterimResult] = useState("");
@@ -126,11 +126,11 @@ export default function ConversationUI({
   useEffect(() => {
     interimResultRef.current = interimResult;
   }, [interimResult]);
-  
+
   // Microphone permission state
   const [micPermissionChecked, setMicPermissionChecked] = useState(false);
   const micStreamRef = useRef<MediaStream | null>(null);
-  
+
   // Additional variables from debug client
   const [isPlaying, setIsPlaying] = useState(false);
   const [isServerPlaying, setIsServerPlaying] = useState(false);
@@ -171,7 +171,7 @@ export default function ConversationUI({
         if (AudioContextClass) {
           audioContextRef.current = new AudioContextClass();
           console.log("Audio context initialized successfully");
-          
+
           if (audioContextRef.current.state === "suspended") {
             console.log("Audio context is suspended - this is normal, will resume on user interaction");
           }
@@ -317,7 +317,7 @@ export default function ConversationUI({
               console.log(`Speech recognition interim result: "${interimText}"`);
               setInterimResult(interimText);
             }
-            
+
             if (finalText) {
               console.log(`Adding final text to transcript: "${finalText}"`);
               setTranscript(prev => {
@@ -416,7 +416,7 @@ export default function ConversationUI({
     // Double-check connection status
     const socketObj = socketRef.current;
     const socketReady = socketObj && socketObj.readyState === WebSocket.OPEN;
-    
+
     if (!socketReady) {
       console.error("Cannot send message - socket not connected");
       return false;
@@ -531,7 +531,7 @@ export default function ConversationUI({
     });
 
     console.log("Push-to-talk shortcuts set up - press and hold SPACEBAR to speak");
-    
+
     // Return cleanup function
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
@@ -582,30 +582,30 @@ export default function ConversationUI({
   const fetchUserProfileInfo = async (userId: string): Promise<UserProfileInfo> => {
     try {
       console.log("Fetching profile info for user:", userId);
-      
+
       const userResponse = await fetch(`/api/user/profile?userId=${userId}`);
       if (!userResponse.ok) {
         throw new Error(`Failed to fetch profile info: ${userResponse.status} ${userResponse.statusText}`);
       }
-      
+
       const userData = await userResponse.json();
       console.log("Retrieved user profile info:", userData);
-      
+
       // Merge API data with props data, preferring API data when available
       const profileInfo: UserProfileInfo = {
         firstName: userData.firstName || userName.split(' ')[0] || "",
         lastName: userData.lastName || (userName.split(' ').length > 1 ? userName.split(' ').slice(1).join(' ') : "") || "",
-        dob: userData.dob || userDob || "", 
+        dob: userData.dob || userDob || "",
         profileDocument: userData.profileDocumentPath || ""
       };
-      
+
       console.log("Final merged profile info:", profileInfo);
       console.log("Profile document path:", profileInfo.profileDocument);
       setUserProfileInfo(profileInfo);
       return profileInfo;
     } catch (error) {
       console.error("Error fetching user profile info:", error);
-      
+
       // Fallback to props if API fails
       const fallbackInfo: UserProfileInfo = {
         firstName: userName.split(' ')[0] || "",
@@ -613,7 +613,7 @@ export default function ConversationUI({
         dob: userDob || "",
         profileDocument: ""
       };
-      
+
       console.log("Using fallback profile info:", fallbackInfo);
       setUserProfileInfo(fallbackInfo);
       return fallbackInfo;
@@ -628,6 +628,22 @@ export default function ConversationUI({
       }
 
       console.log("Fetching voice ID for user:", userId);
+
+      // Try to get voice ID from the GCP bucket first
+      const bucketResponse = await fetch(`/api/user/gcp-voice-id?userId=${userId}`);
+
+      if (bucketResponse.ok) {
+        const bucketData = await bucketResponse.json();
+        if (bucketData?.voiceId) {
+          console.log("Retrieved voice ID from GCP bucket:", bucketData.voiceId);
+          setVoiceId(bucketData.voiceId);
+          return bucketData.voiceId;
+        }
+      } else {
+        console.log("Failed to get voice ID from bucket, falling back to API");
+      }
+
+      // Fall back to the regular API if bucket retrieval fails
       const response = await fetch(`/api/voice/id?userId=${userId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch voice ID: ${response.status} ${response.statusText}`);
@@ -687,7 +703,7 @@ export default function ConversationUI({
       console.log("Socket initialization already in progress, waiting...");
       return;
     }
-    
+
     if (socketRef.current && socketRef.current.readyState !== WebSocket.CLOSED) {
       console.log("Socket already exists and is not closed, skipping initialization");
       isSocketInitializing.current = false;
@@ -748,12 +764,13 @@ export default function ConversationUI({
         return;
       }
 
-      // Use the fixed WebSocket endpoint for localhost
-      const socketUrl = "ws://34.60.182.64:8080";
-      console.log(`Attempting socket connection to: ${socketUrl} (using fixed localhost endpoint)`);
+      // Direct connection to port 8080 using localhost
+      const socketUrl = `ws://localhost:8080`;
+      console.log(`Attempting socket connection to: ${socketUrl}`);
 
       const newSocket = new WebSocket(socketUrl);
       socketRef.current = newSocket;
+
       const connectionTimeout = setTimeout(() => {
         if (newSocket.readyState !== WebSocket.OPEN) {
           console.log("Connection timeout - closing socket");
@@ -817,7 +834,7 @@ export default function ConversationUI({
               // Mark that a real audio chunk arrived
               hasAudioRef.current = true;
               console.log(`Audio response received (chunk ${message.chunk_index || "?"})`);
-              
+
               const audioBase64 = message.audio_data || message.data?.audio || message.data;
               if (!audioBase64 || typeof audioBase64 !== "string" || !/^[A-Za-z0-9+/=]+$/.test(audioBase64.trim())) {
                 console.error("Invalid or missing audio base64 string");
@@ -1135,29 +1152,29 @@ export default function ConversationUI({
   // Add in component mount and cleanup effects
   useEffect(() => {
     console.log("Component mount effect running with user:", user?.id);
-    
+
     // Set mounted flag to true FIRST
     isMounted.current = true;
-    
+
     mountCountRef.current += 1;
     console.log(`Component mount count: ${mountCountRef.current}`);
     setIsComponentMounted(true);
 
     // Initialize audio
     initAudio();
-    
+
     // Check microphone permission
     checkMicrophonePermission();
-    
+
     // Set up push-to-talk shortcuts
     const cleanupShortcuts = setupPushToTalkShortcuts();
-    
+
     // Initialize the user ID
     userIdRef.current = user?.id || `user_${Date.now()}`;
-    
+
     // Initialize WebSocket connection with a longer delay
     let socketInitTimeout: NodeJS.Timeout | null = null;
-    
+
     if (user?.id) {
       console.log("Setting up WebSocket connection with delay");
       const userId = user.id; // Store the id in a constant to ensure TypeScript knows it's defined
@@ -1183,19 +1200,19 @@ export default function ConversationUI({
       // Set mounted flag to false FIRST in cleanup
       isMounted.current = false;
       console.log("Component unmounting - cleaning up resources");
-      
+
       // Clear the socket initialization timeout if it exists
       if (socketInitTimeout) {
         console.log("Clearing socket initialization timeout");
         clearTimeout(socketInitTimeout);
       }
-      
+
       // Clean up existing socket if present
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         console.log("Closing existing WebSocket connection");
         sendDisconnect();
       }
-      
+
       // Clean up speech recognition
       if (recognitionRef.current) {
         try {
@@ -1205,7 +1222,7 @@ export default function ConversationUI({
         }
         recognitionRef.current = null;
       }
-      
+
       // Clean up audio
       if (currentAudioSourceRef.current) {
         try {
@@ -1215,7 +1232,7 @@ export default function ConversationUI({
         }
         currentAudioSourceRef.current = null;
       }
-      
+
       // Close audio context
       if (audioContextRef.current) {
         try {
@@ -1225,7 +1242,7 @@ export default function ConversationUI({
         }
         audioContextRef.current = null;
       }
-      
+
       // Stop microphone stream
       if (micStreamRef.current) {
         try {
@@ -1235,13 +1252,13 @@ export default function ConversationUI({
         }
         micStreamRef.current = null;
       }
-      
+
       // Clear heart beat interval
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
       }
-      
+
       // Clean up keyboard shortcuts
       cleanupShortcuts();
     };
@@ -1312,15 +1329,15 @@ export default function ConversationUI({
             {isListening
               ? "Listening..."
               : isServerPlaying
-              ? "Speaking..."
-              : "Ready to start the conversation"}
+                ? "Speaking..."
+                : "Ready to start the conversation"}
           </h2>
           <p className="text-gray-400">
             {isListening
               ? "Speak now, we are capturing your input."
               : isServerPlaying
-              ? "The AI is responding to your query."
-              : "Press and hold the spacebar to speak."}
+                ? "The AI is responding to your query."
+                : "Press and hold the spacebar to speak."}
           </p>
         </div>
       </div>

@@ -34,25 +34,25 @@ export default function Profile() {
   const [successType, setSuccessType] = useState(""); // "username", "password", or "profile"
 
   // Create edited user state with proper typing
-    const [editedUser, setEditedUser] = useState<{
-      firstName: string;
-      middleName: string;
-      lastName: string;
-      email: string;
-      photoUrl: string;
-      username: string;
-      photos: string[];
-      dob: string;
-    }>({
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      email: "",
-      photoUrl: "",
-      username: "",
-      photos: [],
-      dob: "",
-    });
+  const [editedUser, setEditedUser] = useState<{
+    firstName: string;
+    middleName: string;
+    lastName: string;
+    email: string;
+    photoUrl: string;
+    username: string;
+    photos: string[];
+    dob: string;
+  }>({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    photoUrl: "",
+    username: "",
+    photos: [],
+    dob: "",
+  });
 
   useEffect(() => {
     if (!user) {
@@ -115,11 +115,13 @@ export default function Profile() {
         }
         const data = await response.json();
         console.log("Received photos data:", data);
-        setUploadedPhotos(data.photos || []);
+
+        // Update to use the correct property names from the API response
+        setUploadedPhotos(data.galleryPhotos || []);
         setEditedUser((prev) => ({
           ...prev,
-          photoUrl: data.profilePhoto || "",
-          photos: data.photos || [],
+          photoUrl: data.profilePhotos?.[0] || "", // Use first profile photo if available
+          photos: data.galleryPhotos || [],
         }));
       } catch (error) {
         console.error("Error fetching photos:", error);
@@ -199,7 +201,7 @@ export default function Profile() {
           photoUrl: photoUrl,
         };
         setEditedUser(updatedUser);
-        
+
         // Include phone field when updating user context
         await setUser({
           ...updatedUser,
@@ -429,21 +431,19 @@ export default function Profile() {
             <nav className="space-y-2">
               <button
                 onClick={() => setActiveSection("name")}
-                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${
-                  activeSection === "name"
-                    ? "bg-blue-500"
-                    : "hover:bg-slate-800"
-                }`}
+                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${activeSection === "name"
+                  ? "bg-blue-500"
+                  : "hover:bg-slate-800"
+                  }`}
               >
                 <FaUser /> Profile
               </button>
               <button
                 onClick={() => setActiveSection("gallery")}
-                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${
-                  activeSection === "gallery"
-                    ? "bg-blue-500"
-                    : "hover:bg-slate-800"
-                }`}
+                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${activeSection === "gallery"
+                  ? "bg-blue-500"
+                  : "hover:bg-slate-800"
+                  }`}
               >
                 <FaImages /> Photo Gallery
               </button>
@@ -455,11 +455,10 @@ export default function Profile() {
               </Link>
               <button
                 onClick={() => setActiveSection("settings")}
-                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${
-                  activeSection === "settings"
-                    ? "bg-blue-500"
-                    : "hover:bg-slate-800"
-                }`}
+                className={`w-full text-left px-4 py-2 rounded-md flex items-center gap-2 ${activeSection === "settings"
+                  ? "bg-blue-500"
+                  : "hover:bg-slate-800"
+                  }`}
               >
                 <FaCog /> Settings
               </button>
@@ -603,9 +602,8 @@ export default function Profile() {
                           })
                         }
                         disabled={!editMode}
-                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          editMode ? "text-white" : "text-slate-400"
-                        }`}
+                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                          }`}
                       />
                     </div>
                     <div className="bg-slate-800/50 p-4 rounded-lg">
@@ -622,9 +620,8 @@ export default function Profile() {
                           })
                         }
                         disabled={!editMode}
-                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          editMode ? "text-white" : "text-slate-400"
-                        }`}
+                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                          }`}
                       />
                     </div>
                     <div className="bg-slate-800/50 p-4 rounded-lg">
@@ -641,9 +638,8 @@ export default function Profile() {
                           })
                         }
                         disabled={!editMode}
-                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          editMode ? "text-white" : "text-slate-400"
-                        }`}
+                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                          }`}
                       />
                     </div>
                     <div className="bg-slate-800/50 p-4 rounded-lg">
@@ -660,9 +656,8 @@ export default function Profile() {
                           })
                         }
                         disabled={!editMode}
-                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          editMode ? "text-white" : "text-slate-400"
-                        }`}
+                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                          }`}
                       />
                     </div>
 
@@ -712,9 +707,8 @@ export default function Profile() {
                           })
                         }
                         disabled={!editMode}
-                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          editMode ? "text-white" : "text-slate-400"
-                        }`}
+                        className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                          }`}
                       />
                       {!editMode ? (
                         <button
@@ -764,9 +758,8 @@ export default function Profile() {
                             })
                           }
                           disabled={!editMode}
-                          className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            editMode ? "text-white" : "text-slate-400"
-                          }`}
+                          className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
+                            }`}
                         />
                         <button
                           onClick={() => setEditMode(true)}

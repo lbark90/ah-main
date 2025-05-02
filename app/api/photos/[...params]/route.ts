@@ -1,90 +1,74 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
-import fs from 'fs';
 
-const storage = new Storage();  // Use default credentials
-const bucketName = process.env.GCP_BUCKET_NAME || 'memorial-voices';
+// Initialize GCS client
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME || 'memorial-voices';
+console.log(`Using GCS bucket: ${bucketName}`);
 
 export async function GET(
   request: NextRequest,
-  context: { params: { params: string[] } },
+  { params }: { params: { params: string[] } }
 ) {
   try {
-    const params = context.params?.params || [];
+    const username = params.params[0];
+    console.log(`Fetching photos for username: ${username}`);
 
-    if (!params || !Array.isArray(params) || params.length < 1) {
-      return new Response("Missing parameters", { status: 400 });
-    }
+    // Clean the username to prevent path traversal
+    const cleanUsername = username.replace(/[^a-zA-Z0-9_-]/g, '');
+    console.log(`Clean username: ${cleanUsername}`);
 
-    const [username] = params;
-    console.log("Fetching photos for username:", username);
-    const cleanUsername = decodeURIComponent(username)
-      .replace("_", "")
-      .toLowerCase();
-    console.log("Clean username:", cleanUsername);
-
-    if (!storage || !bucketName) {
-      console.error("Storage not properly initialized");
-      return NextResponse.json(
-        { error: "Storage configuration error" },
-        { status: 500 }
-      );
-    }
-
+    // Access the GCS bucket
     const bucket = storage.bucket(bucketName);
-    console.log("Attempting to access bucket:", bucketName);
+    console.log(`Attempting to access bucket: ${bucketName}`);
 
-    try {
-      // Define prefixes
-      const profilePrefix = `${cleanUsername}/profile`;
-      const galleryPrefix = `${cleanUsername}/gallery`;
+    // Define paths for profile and gallery photos
+    const profilePath = `${cleanUsername}/profile`;
+    const galleryPath = `${cleanUsername}/gallery`;
 
-      console.log("Looking for profile photos in:", profilePrefix);
-      console.log("Looking for gallery photos in:", galleryPrefix);
+    console.log(`Looking for profile photos in: ${profilePath}`);
+    console.log(`Looking for gallery photos in: ${galleryPath}`);
 
-      // Get profile photo
-      const [profileFiles] = await bucket.getFiles({ prefix: profilePrefix });
-      console.log("Profile files found:", profileFiles.length);
+    // Get profile photos
+    const [profileFiles] = await bucket.getFiles({ prefix: profilePath });
+    const profilePhotos = profileFiles.map(file => {
+      // Create a signed URL that's valid for 1 hour
+      const expiresAt = Date.now() + 3600000; // 1 hour in milliseconds
+      return file.getSignedUrl({
+        action: 'read',
+        expires: expiresAt
+      }).then(signedUrls => signedUrls[0]);
+    });
 
-      // Get gallery photos
-      const [galleryFiles] = await bucket.getFiles({ prefix: galleryPrefix });
-      console.log("Gallery files found:", galleryFiles.length);
+    // Get gallery photos
+    const [galleryFiles] = await bucket.getFiles({ prefix: galleryPath });
+    const galleryPhotos = galleryFiles.map(file => {
+      // Create a signed URL that's valid for 1 hour
+      const expiresAt = Date.now() + 3600000; // 1 hour in milliseconds
+      return file.getSignedUrl({
+        action: 'read',
+        expires: expiresAt
+      }).then(signedUrls => signedUrls[0]);
+    });
 
-      // Get signed URLs for all photos
-      const getSignedUrls = async (files: any[]) => {
-        return Promise.all(
-          files.map(async (file) => {
-            const [url] = await file.getSignedUrl({
-              action: "read",
-              expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-            });
-            return url;
-          })
-        );
-      };
+    // Wait for all promises to resolve
+    const resolvedProfilePhotos = await Promise.all(profilePhotos);
+    const resolvedGalleryPhotos = await Promise.all(galleryPhotos);
 
-      const [profileUrls, galleryUrls] = await Promise.all([
-        getSignedUrls(profileFiles),
-        getSignedUrls(galleryFiles),
-      ]);
+    console.log(`Profile files found: ${profileFiles.length}`);
+    console.log(`Gallery files found: ${galleryFiles.length}`);
 
-      return NextResponse.json({
-        photos: galleryUrls,
-        profilePhoto: profileUrls[0] || null,
-      });
-    } catch (error) {
-      console.error("Error fetching photos from bucket:", error);
-      return NextResponse.json(
-        { error: "Error fetching photos from storage" },
-        { status: 500 }
-      );
-    }
+    // Return the photo URLs
+    return NextResponse.json({
+      profilePhotos: resolvedProfilePhotos,
+      galleryPhotos: resolvedGalleryPhotos
+    });
   } catch (error) {
-    console.error("Error fetching photos:", error);
+    console.error('Error fetching photos:', error);
     return NextResponse.json(
-      { error: "Error fetching photos" },
-      { status: 500 },
+      { error: 'Failed to fetch photos' },
+      { status: 500 }
     );
   }
 }

@@ -39,11 +39,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Load user from local storage on initial load
+  // Load user from local storage on initial load - but don't make API calls yet
   useEffect(() => {
-    const storedUser = localStorage.getItem("aliveHereUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = localStorage.getItem("aliveHereUser");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Error loading user from local storage:", error);
+      // If there's an error, clear the potentially corrupted storage
+      localStorage.removeItem("aliveHereUser");
     }
   }, []);
 
@@ -58,6 +64,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const loginUser = async (username: string, password: string): Promise<boolean> => {
     try {
+      // This should only be called explicitly during login, not automatically
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -71,13 +78,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      setUser(data);
-      return true;
+
+      if (data.success && data.user) {
+        setUser(data.user);
+        return true;
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
     } catch (error) {
       console.error("Login failed:", error);
       return false;
     }
   };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("aliveHereUser");

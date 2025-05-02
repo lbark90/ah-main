@@ -28,17 +28,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
     }
 
-    // Return success response
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: credentials.userId,
-        username: credentials.userId,
-        firstName: credentials.firstName,
-        lastName: credentials.lastName,
-        email: credentials.email,
-      },
+    // Success case - modify this part
+    const response = NextResponse.json(
+      { message: "Login successful", user: { username } },
+      { status: 200 }
+    );
+
+    // Set the cookie without redirecting to a specific username path
+    response.cookies.set({
+      name: "userId",
+      value: username,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
     });
+
+    return response;
   } catch (error) {
     console.error('Error in login route:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

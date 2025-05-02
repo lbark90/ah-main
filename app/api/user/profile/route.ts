@@ -8,17 +8,22 @@ const bucketName = process.env.GOOGLE_CLOUD_STORAGE_BUCKET || 'memorial-voices';
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId');
-  
-  if (!userId) {
-    return new NextResponse(JSON.stringify({ error: 'User ID is required' }), { 
-      status: 400,
+
+  // Return immediately if userId is undefined or empty
+  if (!userId || userId === 'undefined') {
+    return new NextResponse(JSON.stringify({
+      error: 'Valid User ID is required',
+      status: 'not_authenticated'
+    }), {
+      status: 200, // Return 200 to avoid error logs for non-authenticated states
       headers: { 'Content-Type': 'application/json' }
     });
   }
-  
+
   try {
-    // Build paths for metadata
-    const metadataPath = `${userId}/login_credentials.json`;
+    // Updated path to match the login credentials path structure
+    const metadataPath = `${userId}/credentials/login_credentials.json`;
+    console.log(`Checking for metadata file at path: ${metadataPath}`);
 
     // Create a reference to the bucket
     const bucket = storage.bucket(bucketName);
@@ -27,9 +32,9 @@ export async function GET(request: NextRequest) {
     const [metadataExists] = await bucket.file(metadataPath).exists();
     if (!metadataExists) {
       console.warn(`Metadata file not found at path: ${metadataPath}`);
-      return new NextResponse(JSON.stringify({ 
-        error: 'User profile not found. Please log in again.' 
-      }), { 
+      return new NextResponse(JSON.stringify({
+        error: 'User profile not found. Please log in again.'
+      }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -50,10 +55,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    return new NextResponse(JSON.stringify({ 
+    return new NextResponse(JSON.stringify({
       error: 'Failed to fetch user profile',
       details: error instanceof Error ? error.message : String(error)
-    }), { 
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });

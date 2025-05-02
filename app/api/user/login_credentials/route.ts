@@ -9,9 +9,13 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const userId = url.searchParams.get('userId');
 
-  if (!userId) {
-    return new NextResponse(JSON.stringify({ error: 'User ID is required' }), {
-      status: 400,
+  // Return immediately if userId is undefined or empty
+  if (!userId || userId === 'undefined') {
+    return new NextResponse(JSON.stringify({
+      error: 'Valid User ID is required',
+      status: 'not_authenticated'
+    }), {
+      status: 200, // Return 200 to avoid error logs for non-authenticated states
       headers: { 'Content-Type': 'application/json' },
     });
   }

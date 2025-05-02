@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "../../lib/context/UserContext";
@@ -12,45 +12,32 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { user, setUser, loginUser } = useUser();
+  const { setUser, loginUser } = useUser();
 
-  useEffect(() => {
-    if (user) {
-      router.push("/conversation");
-    }
-  }, [user, router]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/storage/fetch?path=${email}/credentials/login_credentials.json`);
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: email, password }),
+      });
 
-      const credentials = await response.json();
-      if (credentials.userId === email && credentials.password === password) {
-        const user = {
-          id: credentials.userId,
-          username: credentials.userId,
-          firstName: credentials.firstName,
-          lastName: credentials.lastName,
-          email: credentials.email,
-          phone: credentials.phone || "", // Add the required phone property
-        };
-        localStorage.setItem("aliveHereUser", JSON.stringify(user));
-        setUser(user);
-        await loginUser(email, password);
-        router.push("/conversation");
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push('/profile');
       } else {
-        throw new Error("Invalid credentials");
+        setError(data.message || 'Login failed');
       }
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Invalid email or password. Please try again.");
+    } catch (error) {
+      setError('An error occurred during login');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +56,7 @@ export default function Login() {
             Sign in to continue your legacy journey.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label
                 htmlFor="username"
