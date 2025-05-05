@@ -11,6 +11,7 @@ import {
   FaMicrophone,
   FaImages,
 } from "react-icons/fa";
+import PhotoGallery from "@/components/PhotoGallery";
 
 export default function Profile() {
   const { user, setUser, logout } = useUser();
@@ -33,7 +34,6 @@ export default function Profile() {
 
   const [successType, setSuccessType] = useState(""); // "username", "password", or "profile"
 
-  // Create edited user state with proper typing
   const [editedUser, setEditedUser] = useState<{
     firstName: string;
     middleName: string;
@@ -61,7 +61,6 @@ export default function Profile() {
       return;
     }
 
-    // Fetch user data from GCP bucket
     const fetchLoginCredentials = async () => {
       try {
         const url = `/api/user/login_credentials?userId=${user.id}`;
@@ -71,7 +70,7 @@ export default function Profile() {
         if (!response.ok) {
           if (response.status === 404) {
             console.warn("Login credentials not found for user:", user.id);
-            return; // Gracefully handle 404
+            return;
           }
           throw new Error(`Failed to fetch login credentials: ${response.status}`);
         }
@@ -86,7 +85,7 @@ export default function Profile() {
           lastName: data.lastName || prev.lastName,
           email: data.email || prev.email,
           dob: data.dateOfBirth || prev.dob,
-          username: data.userId || prev.username, // Map userId to username
+          username: data.userId || prev.username,
         }));
       } catch (error) {
         console.error("Error fetching login credentials:", error);
@@ -116,11 +115,10 @@ export default function Profile() {
         const data = await response.json();
         console.log("Received photos data:", data);
 
-        // Update to use the correct property names from the API response
         setUploadedPhotos(data.galleryPhotos || []);
         setEditedUser((prev) => ({
           ...prev,
-          photoUrl: data.profilePhotos?.[0] || "", // Use first profile photo if available
+          photoUrl: data.profilePhotos?.[0] || "",
           photos: data.galleryPhotos || [],
         }));
       } catch (error) {
@@ -133,13 +131,11 @@ export default function Profile() {
     fetchPhotos();
   }, [user]);
 
-  // Simple helper to get user folder name
   const getUserFolderName = (): string => {
     if (!user || !user.id) return "anonymous";
     return user.id;
   };
 
-  // Handle profile photo upload with basic form data
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -155,26 +151,17 @@ export default function Profile() {
     setUploadStatus({ loading: true, error: null });
 
     try {
-      // Create form data for photo upload
       const formData = new FormData();
-      formData.append("audio", file); // Using 'audio' as field name to match server expectation
+      formData.append("audio", file);
       formData.append("userName", getUserFolderName());
-      formData.append("questionIndex", "0"); // Required by server
+      formData.append("questionIndex", "0");
       formData.append("type", "profile-photo");
-
-      // Log what we're sending
-      console.log("Sending upload with:", {
-        fileName: file.name,
-        userName: getUserFolderName(),
-        type: "profile-photo",
-      });
 
       const response = await fetch("/api/storage/upload", {
         method: "POST",
         body: formData,
       });
 
-      // Debug response status
       console.log("Upload response status:", response.status);
 
       if (!response.ok) {
@@ -188,9 +175,7 @@ export default function Profile() {
       const data = await response.json();
       console.log("Upload response data:", data);
 
-      // Check if we received a filePath or URL
       if (data.filePath || data.url) {
-        // Prefer the returned URL if available, otherwise construct one
         const photoUrl =
           data.url ||
           `https://storage.googleapis.com/memorial-voices/${data.filePath}`;
@@ -202,11 +187,10 @@ export default function Profile() {
         };
         setEditedUser(updatedUser);
 
-        // Include phone field when updating user context
         await setUser({
           ...updatedUser,
-          phone: user?.phone || "", // Add the required phone field
-          id: user?.id // Preserve the id
+          phone: user?.phone || "",
+          id: user?.id || ""
         });
         setUploadStatus({ loading: false, error: null });
       } else {
@@ -224,101 +208,99 @@ export default function Profile() {
     }
   };
 
-  // Handle gallery photo upload with basic form data
+  // Handle gallery photo upload with multiple files support
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as File[];
     if (files.length === 0) return;
 
     setUploadStatus({ loading: true, error: null });
 
-    // Upload first file only to simplify
-    const file = files[0];
-
-    console.log(
-      "Gallery file selected:",
-      file.name,
-      "Type:",
-      file.type,
-      "Size:",
-      file.size,
-    );
-
     try {
-      // Create form data matching what the server expects
-      const formData = new FormData();
-      formData.append("audio", file); // Server expects 'audio' not 'photo'
-      formData.append("userName", getUserFolderName());
-      formData.append("questionIndex", "0"); // Server requires this field
-      formData.append("type", "gallery"); // Use 'gallery' type
+      const uploadedUrls: string[] = [];
 
-      // Log what we're sending
-      console.log("Sending gallery upload with:", {
-        fileName: file.name,
-        userName: getUserFolderName(),
-        type: "gallery",
-      });
-
-      const response = await fetch("/api/storage/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      // Debug response status
-      console.log("Gallery upload response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Server error response for gallery:", errorText);
-        throw new Error(
-          `Gallery upload failed with status: ${response.status}. Server response: ${errorText}`,
+      // Upload each file sequentially
+      for (const file of files) {
+        console.log(
+          "Gallery file selected:",
+          file.name,
+          "Type:",
+          file.type,
+          "Size:",
+          file.size,
         );
-      }
 
-      const data = await response.json();
-      console.log("Gallery upload response data:", data);
+        // Create form data matching what the server expects
+        const formData = new FormData();
+        formData.append("audio", file); // Server expects 'audio' not 'photo'
+        formData.append("userName", getUserFolderName());
+        formData.append("questionIndex", "0"); // Server requires this field
+        formData.append("type", "gallery"); // Use 'gallery' type
 
-      // Check if we received a filePath or URL
-      if (data.filePath || data.url) {
-        // Prefer the returned URL if available, otherwise construct one
-        const photoUrl =
-          data.url ||
-          `https://storage.googleapis.com/memorial-voices/${data.filePath}`;
-        console.log("Adding gallery photo URL:", photoUrl);
+        const response = await fetch("/api/storage/upload", {
+          method: "POST",
+          body: formData,
+        });
 
-        // Update both states with the new URL
-        setUploadedPhotos((prev) => [...prev, photoUrl]);
-        setEditedUser((prev) => ({
-          ...prev,
-          photos: [...(prev.photos || []), photoUrl],
-        }));
-
-        // Make sure to update the user context as well
-        if (setUser) {
-          await setUser({
-            ...editedUser,
-            phone: user?.phone || "", // Add the required phone field
-            id: user?.id, // Preserve the id
-            photos: [...(editedUser.photos || []), photoUrl],
-          });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Server error response for gallery:", errorText);
+          throw new Error(
+            `Gallery upload failed with status: ${response.status}. Server response: ${errorText}`,
+          );
         }
-        setUploadStatus({ loading: false, error: null });
-      } else {
-        console.error("No file path or URL in gallery response:", data);
-        throw new Error(
-          "Server responded but no file path or URL was provided for gallery upload",
-        );
+
+        const data = await response.json();
+        console.log("Gallery upload response data:", data);
+
+        // Check if we received a filePath or URL
+        if (data.filePath || data.url) {
+          // Prefer the returned URL if available, otherwise construct one
+          const photoUrl =
+            data.url ||
+            `https://storage.googleapis.com/memorial-voices/${data.filePath}`;
+          console.log("Adding gallery photo URL:", photoUrl);
+
+          uploadedUrls.push(photoUrl);
+        } else {
+          console.error("No file path or URL in gallery response:", data);
+          throw new Error(
+            "Server responded but no file path or URL was provided for gallery upload",
+          );
+        }
       }
-    } catch (error) {
-      console.error("Error uploading gallery photo:", error);
+
+      // Update states with all new URLs at once
+      setUploadedPhotos((prev) => [...prev, ...uploadedUrls]);
+      setEditedUser((prev) => ({
+        ...prev,
+        photos: [...(prev.photos || []), ...uploadedUrls],
+      }));
+
+      // Make sure to update the user context as well
+      if (setUser && user) {
+        await setUser({
+          ...user,  // Preserve existing user data
+          // Only include properties that exist in UserData type
+          id: user.id || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          middleName: user.middleName || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          photoUrl: user.photoUrl || "",
+        });
+      }
+
+      setUploadStatus({ loading: false, error: null });
+    } catch (error: any) {
+      console.error("Error uploading gallery photos:", error);
       setUploadStatus({
         loading: false,
-        error: error.message || "Failed to upload gallery photo",
+        error: error.message || "Failed to upload gallery photos",
       });
     }
   };
 
-  // Handle password change
-  // In your handlePasswordChange function:
   const handlePasswordChange = async () => {
     setPasswordError("");
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -330,14 +312,13 @@ export default function Profile() {
       return;
     }
     try {
-      // Use your existing reset-password API route
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: user?.id, // Using id instead of username as it appears to be the equivalent in UserData type
+          username: user?.id,
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
@@ -355,7 +336,7 @@ export default function Profile() {
         confirmPassword: "",
       });
       setSaveSuccess(true);
-      setSuccessType("password"); // Use the success type state
+      setSuccessType("password");
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       setPasswordError(
@@ -364,13 +345,12 @@ export default function Profile() {
     }
   };
 
-  // Handle saving profile changes
   const handleSave = async () => {
     try {
       await setUser({
         ...editedUser,
-        phone: user?.phone || "", // Add the required phone field
-        id: user?.id // Preserve the id
+        phone: user?.phone || "",
+        id: user?.id || ""
       });
       setSaveSuccess(true);
       setSuccessType("profile");
@@ -477,84 +457,25 @@ export default function Profile() {
           <div className="col-span-3">
             <div className="bg-slate-800/50 p-8 rounded-lg">
               {activeSection === "gallery" && (
-                <div>
-                  <h2 className="text-xl font-light mb-6">Photo Gallery</h2>
-                  <p className="text-slate-300 mb-6">
-                    Upload multiple photos to help create more accurate AI
-                    renderings of your loved one.
-                  </p>
-
-                  <div className="mb-8 p-6 bg-slate-800/30 rounded-lg shadow-lg">
-                    <h3 className="text-lg font-medium mb-4">Profile Photo</h3>
-                    {editedUser.photoUrl ? (
-                      <div className="w-32 h-32 rounded-lg overflow-hidden bg-slate-700 shadow-xl hover:scale-105 transition-transform duration-300">
-                        <img
-                          src={editedUser.photoUrl}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <label className="cursor-pointer">
-                        <div className="w-32 h-32 rounded-lg bg-slate-700 shadow-xl flex items-center justify-center cursor-pointer hover:bg-slate-600 transition-colors">
-                          <span className="text-slate-400">
-                            Upload Profile Photo
-                          </span>
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleProfilePhotoUpload}
-                          disabled={uploadStatus.loading}
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  <div className="mt-12">
-                    <h3 className="text-lg font-medium mb-4">Photo Gallery</h3>
-                    <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-                      {uploadedPhotos.map((photo, index) => (
-                        <div
-                          key={index}
-                          className="aspect-square rounded-lg overflow-hidden bg-slate-700 border-2 border-white hover:scale-105 transition-transform duration-300 cursor-pointer w-24 h-24"
-                        >
+                <div className="max-w-2xl mx-auto">
+                  {/* Add profile picture upload section at the top */}
+                  <div className="mb-8 border-b border-slate-700 pb-8">
+                    <h3 className="text-lg font-medium mb-4">Profile Picture</h3>
+                    <div className="flex items-center gap-6">
+                      <div className="w-32 h-32 rounded-lg overflow-hidden bg-slate-700 border-2 border-slate-600 relative">
+                        {editedUser.photoUrl ? (
                           <img
-                            src={photo}
-                            alt={`Gallery ${index + 1}`}
+                            src={editedUser.photoUrl}
+                            alt="Profile"
                             className="w-full h-full object-cover"
                           />
-                        </div>
-                      ))}
-                      {uploadedPhotos.length === 0 && (
-                        <label className="aspect-square rounded-lg bg-slate-700 border-2 border-white hover:bg-slate-600 transition-colors cursor-pointer w-24 h-24 flex items-center justify-center">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoUpload}
-                            className="hidden"
-                            disabled={uploadStatus.loading}
-                          />
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-8 w-8 text-slate-400 hover:text-slate-300"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </label>
-                      )}
-                    </div>
-                    <div className="mt-6">
-                      <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-all duration-300 inline-flex items-center gap-2 shadow-lg">
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FaUser className="text-4xl text-slate-500" />
+                          </div>
+                        )}
+                      </div>
+                      <label className="cursor-pointer flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 transition-colors text-white">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-5 w-5"
@@ -567,18 +488,30 @@ export default function Profile() {
                             clipRule="evenodd"
                           />
                         </svg>
-                        Upload More Photos
+                        Update Profile Picture
                         <input
                           type="file"
                           accept="image/*"
-                          multiple
-                          onChange={handlePhotoUpload}
                           className="hidden"
+                          onChange={handleProfilePhotoUpload}
                           disabled={uploadStatus.loading}
                         />
                       </label>
                     </div>
                   </div>
+
+                  {/* Main photo gallery */}
+                  <PhotoGallery
+                    photos={uploadedPhotos}
+                    onUpload={handlePhotoUpload}
+                    isUploading={uploadStatus.loading}
+                  />
+
+                  {uploadStatus.error && (
+                    <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md">
+                      {uploadStatus.error}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -660,32 +593,31 @@ export default function Profile() {
                           }`}
                       />
                     </div>
-
-                    {!editMode && (
-                      <button
-                        onClick={() => setEditMode(true)}
-                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                      >
-                        Edit Profile
-                      </button>
-                    )}
-                    {editMode && (
-                      <div className="flex gap-4 mt-4">
-                        <button
-                          onClick={handleSave}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                        >
-                          Save Changes
-                        </button>
-                        <button
-                          onClick={() => setEditMode(false)}
-                          className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
                   </div>
+                  {!editMode && (
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    >
+                      Edit Profile
+                    </button>
+                  )}
+                  {editMode && (
+                    <div className="flex gap-4 mt-4">
+                      <button
+                        onClick={handleSave}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        onClick={() => setEditMode(false)}
+                        className="px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -734,7 +666,6 @@ export default function Profile() {
                         </div>
                       )}
                     </div>
-
                     <div className="bg-slate-800/50 p-6 rounded-lg">
                       {saveSuccess && (
                         <div className="mb-4 p-3 bg-green-500/20 text-green-400 rounded-md">
@@ -760,27 +691,17 @@ export default function Profile() {
                           disabled={!editMode}
                           className={`w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editMode ? "text-white" : "text-slate-400"
                             }`}
+                          placeholder="Enter new username"
                         />
-                        <button
-                          onClick={() => setEditMode(true)}
-                          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                        >
-                          Edit Username
-                        </button>
-                        {editMode && (
+                        {!editMode ? (
+                          <button
+                            onClick={() => setEditMode(true)}
+                            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                          >
+                            Edit Username
+                          </button>
+                        ) : (
                           <div className="flex gap-4">
-                            <input
-                              type="text"
-                              value={editedUser.username}
-                              onChange={(e) =>
-                                setEditedUser({
-                                  ...editedUser,
-                                  username: e.target.value,
-                                })
-                              }
-                              className="w-full px-4 py-2 bg-slate-900/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Enter new username"
-                            />
                             <button
                               onClick={async () => {
                                 try {
@@ -792,7 +713,6 @@ export default function Profile() {
                                     alert("Please enter a different username");
                                     return;
                                   }
-
                                   const response = await fetch(
                                     "/api/storage/rename-folder",
                                     {
@@ -804,19 +724,16 @@ export default function Profile() {
                                         oldUsername: user?.id,
                                         newUsername: editedUser.username,
                                       }),
-                                    },
+                                    }
                                   );
-
                                   if (!response.ok) {
                                     throw new Error("Failed to rename folder");
                                   }
-
                                   const data = await response.json();
                                   if (data.success) {
-                                    // Update user context with new username
                                     await setUser({
                                       ...editedUser,
-                                      phone: user?.phone || "", // Add the required phone field
+                                      phone: user?.phone || "",
                                       id: editedUser.username,
                                     });
                                     setEditMode(false);
@@ -824,16 +741,16 @@ export default function Profile() {
                                     setSuccessType("username");
                                     setTimeout(
                                       () => setSaveSuccess(false),
-                                      3000,
+                                      3000
                                     );
                                   }
                                 } catch (error) {
                                   console.error(
                                     "Error updating username:",
-                                    error,
+                                    error
                                   );
                                   alert(
-                                    "Failed to update username. Please try again.",
+                                    "Failed to update username. Please try again."
                                   );
                                 }
                               }}
@@ -851,7 +768,6 @@ export default function Profile() {
                         )}
                       </div>
                     </div>
-
                     <div className="bg-slate-800/50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">Password</h3>
                       <p className="text-slate-400 mb-4">

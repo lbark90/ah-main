@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -9,6 +8,7 @@ export default function Header() {
   const isMainPage = pathname === '/';
   const isLoginPage = pathname === '/login';
   const isRegistrationPage = pathname === '/registration';
+  // Don't exclude conversation page - we'll use the header there too
 
   if (isMainPage || isLoginPage || isRegistrationPage) {
     return null;

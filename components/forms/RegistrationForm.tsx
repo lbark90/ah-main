@@ -27,8 +27,10 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export default function RegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { registerUser } = useUser();
+  const { setUser } = useUser();
 
   const {
     register,
@@ -39,44 +41,61 @@ export default function RegistrationForm() {
   });
 
   const onSubmit = async (data: RegistrationFormData) => {
-    setIsSubmitting(true);
+    setError('');
+    setLoading(true);
 
     try {
+      console.log('Submitting registration data:', data);
+
       // Prepare data for GCP storage
       const gcpData = {
-        firstName: data.firstName,
-        middleName: data.middleName || '',
-        lastName: data.lastName,
-        email: data.email,
-        phoneNumber: data.phone,
-        userId: data.username, // Using username as userId
-        password: data.password,
-        dateOfBirth: data.dateOfBirth,
+        ...data,
+        userId: data.username, // Ensure userId is set to username
+        phoneNumber: data.phone, // Add phoneNumber field for API compatibility
+        password: data.password, // Note: In production, passwords should be hashed
         created_at: new Date().toISOString(),
         last_modified: new Date().toISOString()
       };
-      
+
+      console.log(`Registering user with username: ${data.username}`);
+
       // Upload to GCP
-      await fetch('/api/storage/save', {
+      const response = await fetch('/api/storage/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(gcpData)
+        body: JSON.stringify({ data: gcpData })
       });
 
-      // Register user using context
-      await registerUser(data as UserData);
+      console.log('GCS response status:', response.status);
+
+      const responseData = await response.json();
+      console.log('GCS response data:', responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Registration failed: Server returned ${response.status}`);
+      }
+
+      // Use setUser directly instead of registerUser
+      setUser({
+        id: data.username,
+        username: data.username,
+        firstName: data.firstName,
+        middleName: data.middleName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        dob: data.dateOfBirth
+      });
 
       // Navigate to interview page
       router.push("/interview");
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      alert(
-        "There was an error registering your information. Please try again.",
-      );
+    } catch (err) {
+      console.error('Registration error details:', err);
+      setError(err.message || 'An unexpected error occurred during registration');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -98,9 +117,8 @@ export default function RegistrationForm() {
             type="text"
             id="username"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.username ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.username ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Choose a unique username"
             {...register("username")}
           />
@@ -121,9 +139,8 @@ export default function RegistrationForm() {
             type="text"
             id="firstName"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.firstName ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.firstName ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Enter your first name"
             {...register("firstName")}
           />
@@ -162,9 +179,8 @@ export default function RegistrationForm() {
             type="text"
             id="lastName"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.lastName ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.lastName ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Enter your last name"
             {...register("lastName")}
           />
@@ -186,9 +202,8 @@ export default function RegistrationForm() {
             type="email"
             id="email"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.email ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.email ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Enter your email address"
             {...register("email")}
           />
@@ -208,9 +223,8 @@ export default function RegistrationForm() {
             type="date"
             id="dateOfBirth"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.dateOfBirth ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.dateOfBirth ? "border-red-500" : "border-slate-600"
+              }`}
             {...register("dateOfBirth")}
           />
           {errors.dateOfBirth && (
@@ -231,9 +245,8 @@ export default function RegistrationForm() {
             type="tel"
             id="phone"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.phone ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.phone ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Enter your phone number"
             {...register("phone")}
           />
@@ -253,9 +266,8 @@ export default function RegistrationForm() {
             type="password"
             id="password"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.password ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.password ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Enter your password"
             {...register("password")}
           />
@@ -275,9 +287,8 @@ export default function RegistrationForm() {
             type="password"
             id="confirmPassword"
             style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${
-              errors.confirmPassword ? "border-red-500" : "border-slate-600"
-            }`}
+            className={`w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 [&:-webkit-autofill]:bg-[#141c2f] [&:-webkit-autofill]:text-[#e2e8f0] [&:-webkit-autofill_selected]:bg-[#141c2f] [&:-webkit-autofill]:!fill-[#e2e8f0] ${errors.confirmPassword ? "border-red-500" : "border-slate-600"
+              }`}
             placeholder="Confirm your password"
             {...register("confirmPassword")}
           />
@@ -287,15 +298,20 @@ export default function RegistrationForm() {
         </div>
       </div>
 
+      {error && (
+        <div className="p-3 bg-red-900/30 border border-red-800 rounded text-red-300 text-sm">
+          {error}
+        </div>
+      )}
+
       <div className="pt-4">
         <button
           type="submit"
-          disabled={isSubmitting}
-          className={`w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md transition-colors flex items-center justify-center ${
-            isSubmitting ? "opacity-70 cursor-not-allowed" : ""
-          }`}
+          disabled={loading}
+          className={`w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md transition-colors flex items-center justify-center ${loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
         >
-          {isSubmitting ? "Processing..." : "Start Now"}
+          {loading ? "Creating Account..." : "Start Now"}
         </button>
       </div>
 

@@ -31,13 +31,13 @@ interface InterviewContextType {
 
 const InterviewContext = createContext<InterviewContextType>({
   currentSession: null,
-  startNewSession: () => {},
-  addRecording: () => {},
-  replaceRecording: () => {},
+  startNewSession: () => { },
+  addRecording: () => { },
+  replaceRecording: () => { },
   getCurrentQuestionRecording: () => undefined,
-  goToNextQuestion: () => {},
+  goToNextQuestion: () => { },
   goToPreviousQuestion: () => false,
-  completeSession: async () => {},
+  completeSession: async () => { },
 });
 
 export function InterviewProvider({ children }: { children: ReactNode }) {

@@ -498,6 +498,13 @@ export default function Interview() {
     if (!currentSession?.recordings || !user) return;
 
     try {
+      // Log the complete user object to see what we're working with
+      console.log("Complete user object:", user);
+
+      // Use user.id as the username - this is the actual username used for login
+      const username = user.id;
+      console.log(`Using username for uploads: ${username}`);
+
       for (const recording of currentSession.recordings) {
         if (recording && recording.audioUrl) {
           const response = await fetch(recording.audioUrl);
@@ -506,16 +513,25 @@ export default function Interview() {
           const formData = new FormData();
           formData.append("audio", blob, "recording.webm");
           formData.append("questionIndex", String(recording.questionIndex + 1));
-          formData.append("userName", `${user.firstName}_${user.lastName}`);
 
+          // ONLY set the username field - do not set any other identifier fields
+          formData.append("username", username);
+
+          console.log(`Uploading recording ${recording.questionIndex + 1} to folder: ${username}`);
           const uploadResponse = await fetch("/api/storage/upload", {
             method: "POST",
             body: formData,
           });
 
           if (!uploadResponse.ok) {
-            throw new Error("Failed to upload recording");
+            const errorText = await uploadResponse.text();
+            console.error(`Upload failed: ${errorText}`);
+            throw new Error(`Failed to upload recording: ${errorText}`);
           }
+
+          // Log the success response
+          const responseData = await uploadResponse.json();
+          console.log(`Upload successful. Path: ${responseData.path}`);
         }
       }
 

@@ -1,0 +1,15 @@
+{
+  "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...",
+  "header": {
+    "alg": "RS256",
+    "typ": "JWT"
+  },
+  "payload": {
+    "firstName": "Test",
+    "lastName": "User",
+    "userId": "test_user_123",
+    "event": "voice_missing",
+    "iat": 1746204418,
+    "exp": 1746208018
+  }
+}

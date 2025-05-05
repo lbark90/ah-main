@@ -12,7 +12,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { setUser, loginUser } = useUser();
+  const { setUser } = useUser();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +20,8 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      console.log(`Attempting to login with username: ${email}`);
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -31,25 +33,49 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        router.push('/profile');
+        console.log('Login successful:', data);
+
+        // Make sure we're using the correct userId from the response
+        const userId = data.user.userId || data.user.id;
+
+        // Set the user data in context
+        setUser({
+          id: userId, // Use the userId from response
+          firstName: data.user.firstName || '',
+          lastName: data.user.lastName || '',
+          email: data.user.email || email
+        });
+
+        // Give time for the state to update
+        setTimeout(() => {
+          router.push('/profile');
+        }, 100);
       } else {
-        setError(data.message || 'Login failed');
+        console.error('Login failed:', data);
+        setError(data.error || 'Invalid username or password');
       }
     } catch (error) {
-      setError('An error occurred during login');
-      console.error(error);
+      console.error('Login error:', error);
+      setError('An error occurred during login. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  function setIsResetModalOpen(arg0: boolean): void {
-    throw new Error("Function not implemented.");
-  }
+  // Forgot password function
+  const handleForgotPassword = () => {
+    alert("Please contact support to reset your password.");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col">
-      <main className="container mx-auto px-4 py-12 flex-grow">
+      <header className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center">
+          <Link href="/" className="text-3xl font-light">AliveHere<span className="text-blue-400">.com</span></Link>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 flex-grow">
         <div className="max-w-md mx-auto bg-slate-800/50 p-8 rounded-lg border border-slate-700">
           <h1 className="text-3xl font-light mb-6 text-center">Welcome Back</h1>
           <p className="text-slate-300 mb-8 text-center">
@@ -69,8 +95,7 @@ export default function Login() {
                 id="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-                className="w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-slate-600"
+                className="w-full px-4 py-2 bg-slate-900/50 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-slate-600"
                 placeholder="Enter your username"
                 required
               />
@@ -89,8 +114,7 @@ export default function Login() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={{ backgroundColor: "#141c2f", color: "#e2e8f0" }}
-                  className="w-full px-4 py-2 bg-[#141c2f] border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-slate-600"
+                  className="w-full px-4 py-2 bg-slate-900/50 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 border-slate-600"
                   placeholder="Enter your password"
                   required
                 />
@@ -138,7 +162,7 @@ export default function Login() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setIsResetModalOpen(true)}
+                onClick={handleForgotPassword}
                 className="text-blue-400 hover:text-blue-300 text-sm"
               >
                 Forgot your password?

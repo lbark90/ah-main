@@ -26,7 +26,7 @@ export default function Home() {
           <Link href="/registration" className="bg-blue-500 hover:bg-blue-600 px-8 py-3 rounded-md text-lg transition-colors">
             Begin Your Legacy
           </Link>
-          
+
           <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-10 max-w-5xl">
             <div className="bg-slate-800/50 p-8 rounded-lg border border-slate-700">
               <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
@@ -37,7 +37,7 @@ export default function Home() {
               <h3 className="text-xl mb-3">Record Your Story</h3>
               <p className="text-slate-400">Answer thoughtful questions about your life, experiences, and wisdom in your own voice.</p>
             </div>
-            
+
             <div className="bg-slate-800/50 p-8 rounded-lg border border-slate-700">
               <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -47,7 +47,7 @@ export default function Home() {
               <h3 className="text-xl mb-3">AI Voice Creation</h3>
               <p className="text-slate-400">Our technology creates a perfect digital replica of your voice and personality.</p>
             </div>
-            
+
             <div className="bg-slate-800/50 p-8 rounded-lg border border-slate-700">
               <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -63,7 +63,7 @@ export default function Home() {
         <section id="how-it-works" className="bg-slate-950/50 py-20">
           <div className="container mx-auto px-4">
             <h2 className="text-4xl font-light mb-16 text-center">How It Works</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
               <div>
                 <h3 className="text-2xl mb-4 font-light">Simple Registration</h3>
@@ -72,7 +72,7 @@ export default function Home() {
                 </p>
                 <h3 className="text-2xl mb-4 font-light">Guided Interview Process</h3>
                 <p className="text-slate-300 mb-6">
-                  Our AI guide will ask you thoughtful questions one at a time. You can respond naturally in your own voice, 
+                  Our AI guide will ask you thoughtful questions one at a time. You can respond naturally in your own voice,
                   with the freedom to pause and continue at your convenience.
                 </p>
                 <h3 className="text-2xl mb-4 font-light">Voice Cloning Technology</h3>
@@ -80,16 +80,16 @@ export default function Home() {
                   Using advanced AI, we create a digital voice that perfectly matches yours, capturing your unique speech patterns and personality.
                 </p>
               </div>
-              
+
               <div className="bg-slate-800/30 p-8 rounded-lg border border-slate-700 relative">
                 <div className="absolute -top-6 -right-6 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold">1</div>
                 <h4 className="text-xl mb-3">Register</h4>
                 <p className="text-slate-400 mb-6">Enter your name and contact information to create your account.</p>
-                
+
                 <div className="absolute -top-6 left-1/3 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold">2</div>
                 <h4 className="text-xl mb-3 mt-12">Record</h4>
                 <p className="text-slate-400 mb-6">Answer questions about your life, experiences, and wisdom in your own voice.</p>
-                
+
                 <div className="absolute -top-6 left-2/3 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-xl font-bold">3</div>
                 <h4 className="text-xl mb-3 mt-12">Share</h4>
                 <p className="text-slate-400">Provide access to loved ones who can have conversations with your digital presence.</p>
@@ -102,11 +102,11 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-4xl font-light mb-6">Our Mission</h2>
             <p className="text-xl text-slate-300 mb-10">
-              At AliveHere, we believe that every life story deserves to be preserved and shared. Our mission is to help people create meaningful digital legacies 
+              At AliveHere, we believe that every life story deserves to be preserved and shared. Our mission is to help people create meaningful digital legacies
               that allow their wisdom, memories, and personality to remain accessible to loved ones for generations to come.
             </p>
             <p className="text-slate-400">
-              We've created a compassionate, ethical platform that respects the profound nature of preserving someone's essence while making the process 
+              We've created a compassionate, ethical platform that respects the profound nature of preserving someone's essence while making the process
               simple and accessible to everyone. Your privacy and dignity are our highest priorities.
             </p>
           </div>
@@ -120,14 +120,14 @@ export default function Home() {
               <h2 className="text-2xl font-light">AliveHere<span className="text-blue-400">.com</span></h2>
               <p className="text-slate-400 mt-2">Preserve your voice. Share your story.</p>
             </div>
-            
+
             <div>
               <Link href="/registration" className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-md transition-colors">
                 Begin Your Legacy
               </Link>
             </div>
           </div>
-          
+
           <div className="border-t border-slate-800 mt-10 pt-10 text-center text-slate-500">
             <p>&copy; {new Date().getFullYear()} AliveHere. All rights reserved.</p>
           </div>

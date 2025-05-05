@@ -17,6 +17,8 @@ export default function InterviewRecorder({ questionIndex }: Props) {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioUrlRef = useRef<string | null>(null);
   const [interviewData, setInterviewData] = useState({}); //Added to store interview data
+  const [isBrowserSupported, setIsBrowserSupported] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   // Get the current recording if it exists
   const currentRecording = getCurrentQuestionRecording
@@ -178,8 +180,6 @@ export default function InterviewRecorder({ questionIndex }: Props) {
     };
   }, [questionIndex, user, audioBlob, hasExistingRecording, currentRecording]);
 
-  const [isBrowserSupported, setIsBrowserSupported] = useState(true);
-
   useEffect(() => {
     // Check for browser support only on client side
     if (typeof window !== "undefined") {
@@ -198,15 +198,14 @@ export default function InterviewRecorder({ questionIndex }: Props) {
         );
       }
 
-      // Check for browser media API support
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error(
-          "Audio recording is not supported - please enable microphone access",
-        );
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // Use WebM with opus codec which has the best browser support
+      // We'll convert to MP3 server-side
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -220,6 +219,8 @@ export default function InterviewRecorder({ questionIndex }: Props) {
       setIsRecording(true);
     } catch (error) {
       console.error("Error starting recording:", error);
+      // Log more details about the error for debugging
+      console.log("Error details:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unable to access microphone";
       setError(
@@ -233,14 +234,19 @@ export default function InterviewRecorder({ questionIndex }: Props) {
 
     mediaRecorderRef.current.onstop = async () => {
       try {
-        // First, let's check what the MediaRecorder is using
-        const mimeType = mediaRecorderRef.current?.mimeType || "audio/webm";
-        console.log("MediaRecorder MIME type:", mimeType);
+        console.log("Recording stopped, processing audio...");
 
-        // Create the blob with audio data
+        if (audioChunksRef.current.length === 0) {
+          console.error("No audio chunks recorded");
+          setError("No audio data was captured. Please try again.");
+          return;
+        }
+
+        // Create the blob with audio data as WebM
         const audioBlob = new Blob(audioChunksRef.current, {
-          type: mimeType,
+          type: "audio/webm"
         });
+
         console.log("Created audio blob of size:", audioBlob.size, "bytes");
         setAudioBlob(audioBlob);
         setIsRecording(false);
@@ -261,17 +267,15 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           console.log(`Chunk ${index} size: ${chunk.size} bytes`);
         });
 
-        // Create filename for the recording with MP3 extension (server will handle conversion)
-        const fileName = `question${questionIndex + 1}_${new Date().getTime()}.mp3`;
-
         try {
-          // First try to delete any existing recording
-          const userName = `${user.firstName}_${user.lastName}`;
+          const userId = user.id;
+          console.log(`Using user ID for recording: ${userId}`);
           const formData = new FormData();
-          formData.append("audio", audioBlob, fileName);
+          formData.append("audio", audioBlob, `recording.webm`);
           formData.append("questionIndex", (questionIndex + 1).toString());
-          formData.append("userName", userName);
+          formData.append("username", userId);
           formData.append("type", "recording"); // This is the required field for the server
+          formData.append("convertToMp3", "true");
 
           try {
             const deleteResponse = await fetch(`/api/storage/delete`, {
@@ -280,7 +284,7 @@ export default function InterviewRecorder({ questionIndex }: Props) {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                userName,
+                username: userId,
                 questionIndex: questionIndex + 1,
                 type: "recording",
               }),
@@ -310,7 +314,7 @@ export default function InterviewRecorder({ questionIndex }: Props) {
           console.log("Sending actual upload request...");
           // Add more logging to track the upload process
           console.log(
-            `Uploading audio for user ${userName}, question ${questionIndex + 1}`,
+            `Uploading audio for user ${userId}, question ${questionIndex + 1}`,
           );
           console.log(
             `Audio blob size: ${audioBlob.size} bytes, type: ${audioBlob.type}`,
@@ -397,6 +401,71 @@ export default function InterviewRecorder({ questionIndex }: Props) {
       mediaRecorderRef.current.stream
         .getTracks()
         .forEach((track) => track.stop());
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!audioBlob || !user) return;
+
+    try {
+      setUploading(true);
+
+      // Use the user ID directly - not a composite name
+      const username = user.id;
+      console.log(`Using username for recording upload: ${username}`);
+
+      const formData = new FormData();
+
+      // Since server-side conversion isn't available, we'll keep the WebM format
+      // but save it with .mp3 extension to maintain compatibility
+      formData.append("audio", audioBlob, "recording.mp3");
+      formData.append("questionIndex", String(questionIndex + 1));
+      formData.append("username", username);
+      formData.append("type", "recording");
+
+      // Log the form data fields for debugging
+      console.log("FormData fields:");
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof Blob) {
+          console.log(`${key}: [Blob/File] size=${value.size} type=${value.type}`);
+        } else {
+          console.log(`${key}: ${value}`);
+        }
+      }
+
+      console.log("Sending actual upload request...");
+      console.log(`Uploading audio for user ${username}, question ${questionIndex + 1}`);
+      console.log(`Audio blob size: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+
+      const response = await fetch("/api/storage/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const responseText = await response.text();
+      console.log("Raw server response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Parsed server response:", data);
+      } catch (e) {
+        console.error("Failed to parse server response as JSON:", e);
+        throw new Error(`Server returned invalid JSON: ${responseText}`);
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          `Upload failed: ${data.error || response.statusText}`,
+        );
+      }
+
+      // ...existing code...
+    } catch (error) {
+      console.error("Error uploading recording:", error);
+      setError("Error uploading recording.");
+    } finally {
+      setUploading(false);
     }
   };
 

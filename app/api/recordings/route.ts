@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { localStorageService } from '@/lib/storage/localStorageService';
+import { localStorageService } from 'lib/storage/localStorageService';
 
 export async function GET(request: Request) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       audioData: audioBuffer,
       questionIndex: 0, // Add the missing property, set appropriate value based on your logic
     };
-    
+
     await localStorageService.saveRecording(recording);
     return NextResponse.json({ success: true, recordingId });
   } catch (error: any) {

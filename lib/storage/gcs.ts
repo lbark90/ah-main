@@ -2,13 +2,11 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import fs from 'fs';
 
-// Initialize storage with default credentials from the GCP VM
-const storage = new Storage();
+// Bucket name from environment variable with fallback
+export const bucketName = process.env.GCS_BUCKET_NAME || 'memorial-voices';
 
-const bucketName = process.env.GCP_BUCKET_NAME || 'memorial-voices';
-console.log(`Using GCS bucket: ${bucketName}`);
-
-export { storage, bucketName };
+// Initialize Storage with default credentials (will use VM's service account)
+export const storage = new Storage();
 
 export async function uploadFile(filePath: string, destination: string) {
   try {
@@ -50,14 +48,15 @@ export async function deleteFile(fileName: string) {
   }
 }
 
-export async function fileExists(fileName: string) {
+// Helper function to check if a file exists in the bucket
+export async function fileExists(filePath: string): Promise<boolean> {
   try {
-    console.log(`Checking if file exists: ${fileName}`);
-    const [exists] = await storage.bucket(bucketName).file(fileName).exists();
-    console.log(`File exists: ${exists}`);
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(filePath);
+    const [exists] = await file.exists();
     return exists;
   } catch (error) {
-    console.error('Error checking if file exists:', error);
+    console.warn(`Error checking if file ${filePath} exists:`, error);
     return false;
   }
 }

@@ -5,7 +5,7 @@ import { storage, bucketName } from '@/lib/storage/gcs';
 export async function POST(request: Request) {
   try {
     const { path: folderPath } = await request.json();
-    
+
     if (!folderPath) {
       return NextResponse.json({ error: 'Folder path is required' }, { status: 400 });
     }
