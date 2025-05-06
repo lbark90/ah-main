@@ -872,8 +872,10 @@ export default function ConversationUI({
       console.log(`Initializing WebSocket for user ID: ${userId}`);
 
       // Use public IP for WebSocket connection
-      const socketUrl = "ws://34.60.182.64:8080";
-      console.log(`Attempting WebSocket connection to: ${socketUrl}`);
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = process.env.NEXT_PUBLIC_WEBSOCKET_HOST || window.location.hostname;
+      const port = process.env.NEXT_PUBLIC_WEBSOCKET_PORT || '8080';
+      const socketUrl = `${protocol}//${host}:${port}`;
 
       const socket = new WebSocket(socketUrl);
 

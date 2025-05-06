@@ -8,13 +8,21 @@ const nextConfig = {
     return config;
   },
   
-  assetPrefix: process.env.NODE_ENV === 'development' ? undefined : '',
+  // CHANGE: Remove conditional for assetPrefix - let Next.js handle it automatically
+  // assetPrefix: process.env.NODE_ENV === 'development' ? undefined : '',
+  
+  // KEEP: Standalone output mode
   output: 'standalone',
 
-  // Configure allowed image domains
+  // ADD: Explicitly set the distDir for clarity
+  distDir: '.next',
+
+  // ADD: Configure public directory for standalone mode
+  useFileSystemPublicRoutes: true,
+
+  // KEEP: Configure allowed image domains
   images: {
     domains: ['storage.googleapis.com'],
-    // Optional: configure remotePatterns for more specific control
     remotePatterns: [
       {
         protocol: 'https',
@@ -24,7 +32,7 @@ const nextConfig = {
     ],
   },
   
-  // Disable automatic port switching if 3000 is in use
+  // KEEP: Experimental features
   experimental: {
     strictNextHead: true,
   }
