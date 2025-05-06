@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Storage } from '@google-cloud/storage';
+
+const storage = new Storage();
+const bucketName = 'memorial-voices';
 
 export async function GET(request: Request) {
   try {
@@ -15,16 +19,36 @@ export async function GET(request: Request) {
 
     console.log(`Fetching profile for user: ${userId}`);
 
-    // In a production environment, you would fetch this from a database
-    // For now, we're returning default values to unblock the conversation UI
-    // You can enhance this with actual database integration later
+    try {
+      const credentialsFile = storage.bucket(bucketName).file(`${userId}/credentials/login_credentials.json`);
+      const [credContents] = await credentialsFile.download();
+      const credStr = credContents.toString().trim();
 
-    return NextResponse.json({
-      firstName: '',
-      lastName: '',
-      dob: '',
-      profileDocument: ''
-    });
+      let profileData;
+      try {
+        profileData = JSON.parse(credStr);
+      } catch (parseErr) {
+        console.warn('Login credentials file is not valid JSON; using fallback values.');
+        profileData = {
+          firstName: 'Unknown',
+          lastName: 'Unknown',
+          dob: 'Unknown'
+        };
+      }
+
+      return NextResponse.json({
+        firstName: profileData.firstName || 'Unknown',
+        lastName: profileData.lastName || 'Unknown',
+        dob: profileData.dateOfBirth || 'Unknown',
+        profileDocument: `${userId}/profile_description/${userId}_memorial_profile.txt`
+      });
+    } catch (err) {
+      console.error('Error fetching profile from bucket:', err);
+      return NextResponse.json(
+        { error: 'Failed to fetch user profile from storage' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error handling user profile request:', error);
     return NextResponse.json(

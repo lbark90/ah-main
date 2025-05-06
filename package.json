@@ -1,9 +1,11 @@
 {
   "scripts": {
-    "dev": "node server.js",
+    "dev": "next dev",
+    "dev-direct": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
-    "lint": "next lint"
+    "start": "next start",
+    "lint": "next lint",
+    "start-custom": "NODE_ENV=production node server.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",

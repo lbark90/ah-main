@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { useUser } from '../../lib/context/UserContext';
@@ -13,28 +13,25 @@ const ConversationUI = dynamic(
 );
 
 export default function ConversationPage() {
-  const { user } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
-  const [userLoadAttempted, setUserLoadAttempted] = useState(false);
+  const { user, isLoading } = useUser();
 
   useEffect(() => {
-    // Set mounted flag
-    const isMounted = true;
-
-    // Debug log to verify user data
     console.log("User data in ConversationPage:", user);
+
+    if (isLoading) {
+      console.log("Still loading user, skipping socket init for now.");
+      return;
+    }
 
     if (user) {
       console.log("Initializing socket with user ID:", user.id);
-
-      // Only pass the userId - the ConversationUI component will fetch other required data
       try {
         initializeSocket(user.id || '');
       } catch (error) {
         console.error("Error initializing socket:", error);
       }
     } else {
-      console.warn("User data is not available, skipping socket initialization.");
+      console.warn("No user found after loading, skipping socket initialization.");
     }
 
     // Apply the background color directly
@@ -43,14 +40,11 @@ export default function ConversationPage() {
     document.body.classList.add('conversation-page');
 
     return () => {
-      // Cleanup on unmount
-      if (isMounted) {
-        document.body.style.backgroundColor = '';
-        document.documentElement.style.backgroundColor = '';
-        document.body.classList.remove('conversation-page');
-      }
+      document.body.style.backgroundColor = '';
+      document.documentElement.style.backgroundColor = '';
+      document.body.classList.remove('conversation-page');
     };
-  }, [user]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -63,7 +57,7 @@ export default function ConversationPage() {
     );
   }
 
-  if (!user && userLoadAttempted) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0a102a]">
         <div className="p-8 bg-slate-800 rounded-lg shadow-lg max-w-md text-center">
@@ -84,21 +78,16 @@ export default function ConversationPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
-      {/* Pass user details to ConversationUI if available */}
-      {user ? (
-        <ConversationUI
-          userName={user.firstName || "User"}
-          memorializedName={
-            user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
-              : user.lastName || user.firstName || "AI Assistant"
-          }
-          onConversationEnd={() => console.log("Conversation ended")}
-          userDob={user.dob || ""}
-        />
-      ) : (
-        <p className="text-white">Loading user data...</p>
-      )}
+      <ConversationUI
+        userName={user.firstName || "User"}
+        memorializedName={
+          user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.lastName || user.firstName || "AI Assistant"
+        }
+        onConversationEnd={() => console.log("Conversation ended")}
+        userDob={user.dob || ""}
+      />
     </div>
   );
 }

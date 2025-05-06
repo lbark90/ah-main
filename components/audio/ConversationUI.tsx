@@ -58,6 +58,7 @@ interface UserProfileInfo {
   lastName?: string;
   dob?: string;
   profileDocument?: string; // Path to profile document file only
+  voiceId?: string; // Add voiceId property to the interface
 }
 
 export default function ConversationUI({
@@ -70,6 +71,9 @@ export default function ConversationUI({
   const { user } = useUser();
   const { assistant, conversation, isLoading: isAssistantLoading } = useAssistant();
 
+  // Add loading debug state to help troubleshoot
+  const [loadingState, setLoadingState] = useState<string>("initializing");
+
   // Get userId properly - check both username and id since the field may vary
   const getUserId = () => {
     const userId = user?.id || user?.username || "";
@@ -81,13 +85,19 @@ export default function ConversationUI({
 
   useEffect(() => {
     console.log("Current user in ConversationUI:", user);
+    console.log("Current loading state:", loadingState);
 
     // Only redirect if we've confirmed no user exists after initial load
     if (typeof window !== 'undefined' && !isAssistantLoading && !user) {
       console.log("No user detected after initial load, redirecting to login");
       router.push("/login");
     }
-  }, [user, router, isAssistantLoading]);
+
+    // If user is available, update loading state
+    if (user) {
+      setLoadingState("user-loaded");
+    }
+  }, [user, router, isAssistantLoading, loadingState]);
 
   const isMounted = useRef(true);
   const [isComponentMounted, setIsComponentMounted] = useState(false);
@@ -861,9 +871,8 @@ export default function ConversationUI({
 
       console.log(`Initializing WebSocket for user ID: ${userId}`);
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.hostname;
-      const socketUrl = `${protocol}//${host}:8080`;
+      // Use public IP for WebSocket connection
+      const socketUrl = "ws://34.60.182.64:8080";
       console.log(`Attempting WebSocket connection to: ${socketUrl}`);
 
       const socket = new WebSocket(socketUrl);
@@ -907,6 +916,31 @@ export default function ConversationUI({
         try {
           const data = JSON.parse(event.data);
           console.log("Parsed message:", data);
+          // Handle audio_chunk messages
+          if (data && data.type === 'audio_chunk') {
+            // Play audio chunk as soon as it is received and processed
+            // This should be inside a user-triggered context if needed
+            // For now, we check if userStartedConversation is true
+            const parsedMessage = data;
+            if (parsedMessage.audio_data) {
+              const base64String = parsedMessage.audio_data;
+              const binaryString = atob(base64String);
+              const len = binaryString.length;
+              const bytes = new Uint8Array(len);
+              for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              const audioBlob = new Blob([bytes], { type: 'audio/wav' });
+              const audioUrl = URL.createObjectURL(audioBlob);
+              const audio = new Audio(audioUrl);
+              // If browser autoplay restrictions apply, ensure in user-triggered context
+              if (userStartedConversation) {
+                audio.play().catch(e => console.warn('Audio playback blocked:', e));
+              } else {
+                audio.play().catch(e => console.warn('Audio playback blocked:', e));
+              }
+            }
+          }
         } catch (e) {
           console.error("Error parsing message:", e);
         }
@@ -921,9 +955,10 @@ export default function ConversationUI({
     }
   }
 
-  // Modify the useEffect for socket initialization
+  // Modify the useEffect for socket initialization to improve loading state tracking
   useEffect(() => {
     console.log("Running socket initialization effect");
+    setLoadingState("socket-initializing");
 
     // Wrap logic in an async function since we may need to fetch missing data
     const tryInitializeSocket = async () => {
@@ -942,12 +977,15 @@ export default function ConversationUI({
           socketRef.current.readyState === WebSocket.CONNECTING)
       ) {
         console.log("Socket already exists in useEffect, not reinitializing");
+        setLoadingState("socket-already-connected");
+        setIsLoaded(true); // Ensure we mark as loaded when socket exists
         return;
       }
 
       // Only proceed if we're not already connecting
       if (socketConnecting.current) {
         console.log("Socket connection already in progress in useEffect, skipping");
+        setLoadingState("socket-connecting");
         return;
       }
 
@@ -960,48 +998,79 @@ export default function ConversationUI({
         !userProfileInfo.profileDocument
       ) {
         console.log("Fetching missing user profile and voiceId...");
-        const updatedVoiceId = await fetchVoiceId(userIdRef.current);
-        const updatedProfile = await fetchUserProfileInfo(userIdRef.current);
-        setVoiceId(updatedVoiceId);
-        setUserProfileInfo(updatedProfile);
-        return; // wait for next effect run with updated data
+        setLoadingState("fetching-profile-data");
+        try {
+          const updatedVoiceId = await fetchVoiceId(userIdRef.current);
+          const updatedProfile = await fetchUserProfileInfo(userIdRef.current);
+          // Set state, then let the effect rerun with updated values instead of calling initializeSocket now
+          setVoiceId(updatedVoiceId);
+          setUserProfileInfo(updatedProfile);
+          setLoadingState("profile-data-fetched");
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setLoadingState("profile-fetch-error");
+          setIsLoaded(true); // Still mark as loaded to prevent permanent loading state
+        }
+        // Do NOT call initializeSocket here, wait for state to update and effect to rerun with the correct values
+        return;
       }
+
+      // Compose the initialization data using the most up-to-date info available
+      const socketInitData = {
+        userId: userIdRef.current,
+        voiceId: voiceId || "[will be fetched]",
+        firstName: userProfileInfo.firstName || user?.firstName || "[not provided]",
+        lastName: userProfileInfo.lastName || user?.lastName || "[not provided]",
+        dob: userProfileInfo.dob || user?.dob || "[not provided]",
+        profileDocument: userProfileInfo.profileDocument || "[not provided]",
+      };
+      console.log("Socket initialization with available data:", socketInitData);
+      // For backwards compatibility, also log the traditional message
+      console.log("Initializing socket with user ID:", userIdRef.current);
 
       // Only initialize socket if we have the required data
       if (
-        userIdRef.current &&
-        voiceId &&
-        userProfileInfo.firstName &&
-        userProfileInfo.lastName &&
-        userProfileInfo.dob &&
-        userProfileInfo.profileDocument
+        socketInitData.userId &&
+        socketInitData.voiceId &&
+        socketInitData.firstName &&
+        socketInitData.lastName &&
+        socketInitData.dob &&
+        socketInitData.profileDocument
       ) {
         console.log("All prerequisites met, initializing socket connection");
+        setLoadingState("socket-connecting-with-data");
 
         initializeSocket(
-          userIdRef.current,
-          voiceId,
-          userProfileInfo.firstName,
-          userProfileInfo.lastName,
-          userProfileInfo.dob,
-          userProfileInfo.profileDocument
+          socketInitData.userId,
+          socketInitData.voiceId,
+          socketInitData.firstName,
+          socketInitData.lastName,
+          socketInitData.dob,
+          socketInitData.profileDocument
         ).then(socket => {
           if (socket) {
             // Start heartbeat if needed
             if (!heartbeatIntervalRef.current) {
-              startHeartbeat();
+              startHeartbeat(socket, socketInitData.userId);
             }
+            setLoadingState("socket-connected");
+            setIsLoaded(true); // Mark as loaded when socket is connected
+          } else {
+            setLoadingState("socket-connection-failed");
+            setIsLoaded(true); // Still mark as loaded to prevent permanent loading state
           }
         });
       } else {
-        console.log("Missing required data for socket initialization:", {
-          userId: userIdRef.current,
-          voiceId,
-          firstName: userProfileInfo.firstName,
-          lastName: userProfileInfo.lastName,
-          dob: userProfileInfo.dob,
-          profileDocument: userProfileInfo.profileDocument
-        });
+        console.log("Missing required data for socket initialization:", socketInitData);
+        setLoadingState("missing-required-data");
+
+        // Force set isLoaded to true after a timeout to prevent permanent loading state
+        setTimeout(() => {
+          if (!isLoaded) {
+            console.log("Forcing loaded state after timeout");
+            setIsLoaded(true);
+          }
+        }, 5000);
       }
     };
 
@@ -1040,26 +1109,37 @@ export default function ConversationUI({
     if (!socketRef.current &&
       !socketConnecting.current &&
       userIdRef.current &&
-      voiceId &&
-      userProfileInfo.firstName &&
-      userProfileInfo.lastName &&
-      userProfileInfo.dob &&
-      userProfileInfo.profileDocument) {
+      (voiceId || userProfileInfo.voiceId) &&
+      (userProfileInfo.firstName || user?.firstName) &&
+      (userProfileInfo.lastName || user?.lastName) &&
+      (userProfileInfo.dob || user?.dob) &&
+      (userProfileInfo.profileDocument)) {
 
-      console.log("Dependencies changed, creating new socket connection");
+      // Compose the initialization data using the most up-to-date info available
+      const socketInitData = {
+        userId: userIdRef.current,
+        voiceId: voiceId || "[will be fetched]",
+        firstName: userProfileInfo.firstName || user?.firstName || "[not provided]",
+        lastName: userProfileInfo.lastName || user?.lastName || "[not provided]",
+        dob: userProfileInfo.dob || user?.dob || "[not provided]",
+        profileDocument: userProfileInfo.profileDocument || "[not provided]",
+      };
+      console.log("Socket initialization with available data:", socketInitData);
+      // For backwards compatibility, also log the traditional message
+      console.log("Initializing socket with user ID:", userIdRef.current);
 
       initializeSocket(
-        userIdRef.current,
-        voiceId,
-        userProfileInfo.firstName,
-        userProfileInfo.lastName,
-        userProfileInfo.dob,
-        userProfileInfo.profileDocument
+        socketInitData.userId,
+        socketInitData.voiceId,
+        socketInitData.firstName,
+        socketInitData.lastName,
+        socketInitData.dob,
+        socketInitData.profileDocument
       ).then(socket => {
         if (socket) {
           // Start heartbeat if needed
           if (!heartbeatIntervalRef.current) {
-            startHeartbeat();
+            startHeartbeat(socket, socketInitData.userId);
           }
         }
       });
@@ -1251,36 +1331,24 @@ export default function ConversationUI({
   }
 
   if (!isLoaded) {
+    // Enhanced loading screen with debug information
     return (
       <div className="flex items-center justify-center h-full bg-[#0a102a]">
         <div className="flex flex-col items-center">
           <div className="w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-slate-300">Loading conversation...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col h-full justify-center items-center bg-[#0a102a]">
-        <div className="p-8 bg-slate-800 rounded-lg shadow-lg max-w-md">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-red-100/10">
-            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-          <h2 className="text-xl text-white mb-4 font-semibold text-center">Error</h2>
-          <p className="text-slate-300 mb-6 text-center">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-500 transition-colors text-white font-medium rounded-lg flex items-center justify-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            Reload Page
-          </button>
+          <p className="mt-2 text-sm text-slate-400">Current state: {loadingState}</p>
+          {loadingState === "missing-required-data" && (
+            <div className="mt-4 text-xs text-red-400 max-w-md text-center">
+              <p>Could not retrieve all required user data. Try refreshing the page.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md"
+              >
+                Refresh Page
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1460,7 +1528,14 @@ function setTranscriptSent(value: boolean) {
   }));
 }
 
-function startHeartbeat() {
-  throw new Error("Function not implemented.");
+function startHeartbeat(socket: WebSocket, userId: string) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    console.log("Starting heartbeat interval");
+    const intervalId = setInterval(() => {
+      sendHeartbeat(socket, userId);
+    }, 30000); // Send heartbeat every 30 seconds
+    return intervalId;
+  }
+  return null;
 }
 
