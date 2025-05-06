@@ -1,76 +1,35 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
+const path = require('path')
 
-// Explicitly set development mode
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-const dev = process.env.NODE_ENV !== 'production';
+const dir = path.join(__dirname)
 
-// Add extensive debug logging
-console.log(`Starting server in ${dev ? 'development' : 'production'} mode`);
-console.log('Node.js version:', process.version);
-console.log('Process arguments:', process.argv);
-console.log('Working directory:', process.cwd());
+process.env.NODE_ENV = 'production'
+process.chdir(__dirname)
 
-// Add progress markers
-console.log('[1] Initializing Next.js app');
-const app = next({ dev });
-console.log('[2] Getting request handler');
-const handle = app.getRequestHandler();
+const PORT = process.env.PORT || 3001
+const hostname = process.env.HOSTNAME || '0.0.0.0'
 
-// Add preparation timeout detection
-const prepTimeout = setTimeout(() => {
-  console.error('WARNING: Next.js app preparation has been running for 30 seconds without completing');
-  console.error('This might indicate a configuration issue or resource limitation');
-}, 30000);
+let keepAliveTimeout = parseInt(process.env.KEEP_ALIVE_TIMEOUT, 10)
+const nextConfig = {"env":{},"eslint":{"ignoreDuringBuilds":false},"typescript":{"ignoreBuildErrors":false,"tsconfigPath":"tsconfig.json"},"distDir":"./.next","cleanDistDir":true,"assetPrefix":"","cacheMaxMemorySize":52428800,"configOrigin":"next.config.js","useFileSystemPublicRoutes":true,"generateEtags":true,"pageExtensions":["tsx","ts","jsx","js"],"poweredByHeader":true,"compress":true,"analyticsId":"","images":{"deviceSizes":[640,750,828,1080,1200,1920,2048,3840],"imageSizes":[16,32,48,64,96,128,256,384],"path":"/_next/image","loader":"default","loaderFile":"","domains":["storage.googleapis.com"],"disableStaticImages":false,"minimumCacheTTL":60,"formats":["image/webp"],"dangerouslyAllowSVG":false,"contentSecurityPolicy":"script-src 'none'; frame-src 'none'; sandbox;","contentDispositionType":"inline","remotePatterns":[{"protocol":"https","hostname":"storage.googleapis.com","pathname":"/memorial-voices/**"}],"unoptimized":false},"devIndicators":{"buildActivity":true,"buildActivityPosition":"bottom-right"},"onDemandEntries":{"maxInactiveAge":60000,"pagesBufferLength":5},"amp":{"canonicalBase":""},"basePath":"","sassOptions":{},"trailingSlash":false,"i18n":null,"productionBrowserSourceMaps":false,"optimizeFonts":true,"excludeDefaultMomentLocales":true,"serverRuntimeConfig":{},"publicRuntimeConfig":{},"reactProductionProfiling":false,"reactStrictMode":true,"httpAgentOptions":{"keepAlive":true},"outputFileTracing":true,"staticPageGenerationTimeout":60,"swcMinify":true,"output":"standalone","modularizeImports":{"@mui/icons-material":{"transform":"@mui/icons-material/{{member}}"},"lodash":{"transform":"lodash/{{member}}"}},"experimental":{"multiZoneDraftMode":false,"prerenderEarlyExit":false,"serverMinification":true,"serverSourceMaps":false,"linkNoTouchStart":false,"caseSensitiveRoutes":false,"clientRouterFilter":true,"clientRouterFilterRedirects":false,"fetchCacheKeyPrefix":"","middlewarePrefetch":"flexible","optimisticClientCache":true,"manualClientBasePath":false,"cpus":3,"memoryBasedWorkersCount":false,"isrFlushToDisk":true,"workerThreads":false,"optimizeCss":false,"nextScriptWorkers":false,"scrollRestoration":false,"externalDir":false,"disableOptimizedLoading":false,"gzipSize":true,"craCompat":false,"esmExternals":true,"fullySpecified":false,"outputFileTracingRoot":"/opt/ah-main","swcTraceProfiling":false,"forceSwcTransforms":false,"largePageDataBytes":128000,"adjustFontFallbacks":false,"adjustFontFallbacksWithSizeAdjust":false,"typedRoutes":false,"instrumentationHook":false,"bundlePagesExternals":false,"parallelServerCompiles":false,"parallelServerBuildTraces":false,"ppr":false,"missingSuspenseWithCSRBailout":true,"optimizeServerReact":true,"useEarlyImport":false,"staleTimes":{"dynamic":30,"static":300},"strictNextHead":true,"optimizePackageImports":["lucide-react","date-fns","lodash-es","ramda","antd","react-bootstrap","ahooks","@ant-design/icons","@headlessui/react","@headlessui-float/react","@heroicons/react/20/solid","@heroicons/react/24/solid","@heroicons/react/24/outline","@visx/visx","@tremor/react","rxjs","@mui/material","@mui/icons-material","recharts","react-use","@material-ui/core","@material-ui/icons","@tabler/icons-react","mui-core","react-icons/ai","react-icons/bi","react-icons/bs","react-icons/cg","react-icons/ci","react-icons/di","react-icons/fa","react-icons/fa6","react-icons/fc","react-icons/fi","react-icons/gi","react-icons/go","react-icons/gr","react-icons/hi","react-icons/hi2","react-icons/im","react-icons/io","react-icons/io5","react-icons/lia","react-icons/lib","react-icons/lu","react-icons/md","react-icons/pi","react-icons/ri","react-icons/rx","react-icons/si","react-icons/sl","react-icons/tb","react-icons/tfi","react-icons/ti","react-icons/vsc","react-icons/wi"],"trustHostHeader":false,"isExperimentalCompile":false},"configFileName":"next.config.js"}
 
-console.log('[3] Preparing Next.js app');
-app.prepare()
-  .then(() => {
-    clearTimeout(prepTimeout);
-    console.log('[4] Next.js app prepared successfully');
+process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(nextConfig)
 
-    console.log('[5] Creating HTTP server');
-    const server = createServer((req, res) => {
-      const requestStart = Date.now();
-      console.log(`Request received at ${new Date().toISOString()}: ${req.method} ${req.url}`);
-      
-      // Add request timeout detection
-      const requestTimeout = setTimeout(() => {
-        console.error(`WARNING: Request ${req.method} ${req.url} has been processing for 10 seconds`);
-      }, 10000);
-      
-      // Parse the URL
-      const parsedUrl = parse(req.url, true);
-      
-      // Create finished handler to log completion
-      const originalEnd = res.end;
-      res.end = function() {
-        clearTimeout(requestTimeout);
-        const duration = Date.now() - requestStart;
-        console.log(`Request completed in ${duration}ms: ${req.method} ${req.url} with status ${res.statusCode}`);
-        return originalEnd.apply(this, arguments);
-      };
-      
-      // Let Next.js handle the request
-      console.log(`[6] Handling request for ${parsedUrl.pathname}`);
-      handle(req, res, parsedUrl);
-    });
+require('next')
+const { startServer } = require('next/dist/server/lib/start-server')
 
-    console.log('[7] Starting HTTP server');
-    server.listen(3000, 'localhost', (err) => { // Listen on localhost instead of 0.0.0.0
-      if (err) throw err;
-      console.log('[8] Server listening on http://localhost:3000');
-    });
-  })
-  .catch(err => {
-    clearTimeout(prepTimeout);
-    console.error('Error preparing Next.js app:');
-    console.error(err);
-    process.exit(1);
-  });
+if (
+  Number.isNaN(keepAliveTimeout) ||
+  !Number.isFinite(keepAliveTimeout) ||
+  keepAliveTimeout < 0
+) {
+  keepAliveTimeout = undefined
+}
 
-// Add global unhandled rejection handler
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+startServer({
+  dir,
+  isDev: false,
+  config: nextConfig,
+  hostname,
+  port: PORT,
+  keepAliveTimeout
+})
+  

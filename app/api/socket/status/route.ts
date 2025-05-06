@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Add this export to force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // Check if WebSocket server is running by attempting a simple HTTP request to the WebSocket server

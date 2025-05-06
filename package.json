@@ -2,10 +2,19 @@
   "scripts": {
     "dev": "next dev",
     "dev-direct": "next dev",
-    "build": "next build",
+    "build": "npm run clean && next build",
     "start": "next start",
     "lint": "next lint",
-    "start-custom": "NODE_ENV=production node server.js"
+    "start-custom": "NODE_ENV=production node server.js",
+    "safe-start": "bash ./fix-port-and-start.sh",
+    "safe-dev": "bash ./fix-port-and-start.sh --dev",
+    "super-start": "bash ./super-port-fix.sh",
+    "super-dev": "bash ./super-port-fix.sh --dev",
+    "start-alt": "bash ./super-port-fix.sh --alt-port",
+    "start-standalone": "node server.js",
+    "clean": "node scripts/clean-next.js",
+    "prod": "npm run build && npm run start",
+    "build-standalone": "bash ./build-standalone.sh"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",

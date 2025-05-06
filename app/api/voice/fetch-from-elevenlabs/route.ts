@@ -1,6 +1,7 @@
-
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -15,17 +16,17 @@ export async function GET(req: Request) {
     }
 
     const apiKey = process.env.ELEVEN_LABS_API;
-    
+
     if (!apiKey) {
       console.error('ElevenLabs API key is missing');
-      return NextResponse.json({ 
-        error: 'ElevenLabs API configuration error', 
+      return NextResponse.json({
+        error: 'ElevenLabs API configuration error',
         details: 'API key is missing'
       }, { status: 500 });
     }
 
     console.log('ElevenLabs API key is present, making API request');
-    
+
     try {
       const response = await axios.get(`https://api.elevenlabs.io/v1/voices/${voiceId}`, {
         headers: {
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
       });
     } catch (apiError) {
       console.error('ElevenLabs API request failed:', apiError.message);
-      
+
       // If this is a 404, it means the voice ID doesn't exist in ElevenLabs
       if (apiError.response?.status === 404) {
         console.log('Voice ID not found in ElevenLabs, using default voice data');
@@ -53,9 +54,9 @@ export async function GET(req: Request) {
           }
         });
       }
-      
+
       // For other errors, return the error details
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Failed to fetch voice from ElevenLabs',
         details: apiError.message,
         status: apiError.response?.status,
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
     }
   } catch (error) {
     console.error('Error processing ElevenLabs voice fetch:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to process ElevenLabs request',
       details: error.message
     }, { status: 500 });

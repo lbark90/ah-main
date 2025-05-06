@@ -3,6 +3,8 @@ import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import fs from 'fs';
 
+export const dynamic = 'force-dynamic';
+
 const storage = new Storage();  // Use default credentials
 const bucketName = process.env.GCP_BUCKET_NAME || 'memorial-voices';
 
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
       }
 
       console.log(`File exists: ${decodedPath}`);
-      
+
       // For JSON files, return the contents directly
       if (decodedPath.endsWith('.json')) {
         const [fileContents] = await file.download();
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
 
       // Get file contents
       const [content] = await file.download();
-      
+
       try {
         // Try to parse as JSON
         const jsonContent = JSON.parse(content.toString());
@@ -56,16 +58,16 @@ export async function GET(request: Request) {
       }
     } catch (error: any) {
       console.error('Fetch error:', error);
-      return NextResponse.json({ 
-        error: 'Failed to fetch file', 
-        details: error.message 
+      return NextResponse.json({
+        error: 'Failed to fetch file',
+        details: error.message
       }, { status: 500 });
     }
   } catch (error: any) {
     console.error('Request error:', error);
-    return NextResponse.json({ 
-      error: 'Failed to process request', 
-      details: error.message 
+    return NextResponse.json({
+      error: 'Failed to process request',
+      details: error.message
     }, { status: 500 });
   }
 }

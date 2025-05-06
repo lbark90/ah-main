@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
 
+export const dynamic = 'force-dynamic';
+
 const storage = new Storage();
 const bucketName = 'memorial-voices';
 
